@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archeology in Mesopotamia</title>
+    <link rel="stylesheet" href="public/style.css">
+</head>
+<body>
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <div class="resource-display">
+            <div class="resource-item">
+                <span class="resource-icon">📦</span>
+                <span id="inventory-count">0 / 20</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">💰</span>
+                <span id="money">1000</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">⛏️</span>
+                <span id="shovels">1 / 5</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">👷</span>
+                <span id="workers">0 Workers</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">👤</span>
+                <span id="archaeologists">0 / 5</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">📚</span>
+                <span id="linguists">0 / 2</span>
+            </div>
+            <div class="resource-item">
+                <span class="resource-icon">🌡️</span>
+                <span id="temperature">36°</span>
+            </div>
+            <div class="resource-item icon-button" id="map-btn" title="Map">
+                <span class="resource-icon">🗺️</span>
+            </div>
+            <div class="resource-item icon-button" id="messages-btn" title="Messages">
+                <span class="resource-icon">✉️</span>
+            </div>
+            <div class="resource-item icon-button" id="museum-btn" title="Museum">
+                <span class="resource-icon">🏛️</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-container">
+        <!-- Left Sidebar - Excavation Methods -->
+        <div class="sidebar">
+            <h3>Excavation Methods</h3>
+            <button class="excavation-btn" id="surface-collection-btn">
+                Surface Collection
+            </button>
+            <button class="excavation-btn" id="excavation-btn">
+                Excavation
+            </button>
+            <button class="excavation-btn" id="trench-btn">
+                Trench
+            </button>
+            
+            <div class="personnel-section">
+                <h4>Personnel</h4>
+                <div class="personnel-controls">
+                    <div class="personnel-item">
+                        <label>Workers:</label>
+                        <input type="number" id="workers-input" min="0" value="0" max="10">
+                        <span class="cost">$50 each</span>
+                    </div>
+                    <div class="personnel-item">
+                        <label>Archaeologists:</label>
+                        <input type="number" id="archaeologists-input" min="0" value="0" max="5">
+                        <span class="cost">$200 each</span>
+                    </div>
+                    <div class="personnel-item">
+                        <label>Linguists:</label>
+                        <input type="number" id="linguists-input" min="0" value="0" max="2">
+                        <span class="cost">$500 each</span>
+                    </div>
+                </div>
+                <button class="hire-btn" id="hire-btn">Hire Personnel</button>
+            </div>
+
+        </div>
+
+        <!-- Center - Site Visualization -->
+        <div class="site-view">
+            <div class="site-header">
+                <h2 id="site-name">Tell Abu Salabikh</h2>
+                <div class="site-controls">
+                    <button class="action-btn" id="start-excavation-btn" disabled>Start Excavation</button>
+                </div>
+            </div>
+            <div class="tile-container" id="tile-container">
+                <!-- Tiles will be generated here -->
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Artifacts and Inventory -->
+        <div class="artifacts-panel">
+            <h3>Inventory</h3>
+            <div class="inventory-slots" id="inventory-slots">
+                <!-- Inventory slots will be generated here -->
+            </div>
+
+            <h3>Artifacts</h3>
+            <div class="artifacts-list" id="artifacts-list">
+                <!-- Artifact cards will be displayed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Progress Modal -->
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <h3>Task in Progress</h3>
+            <div class="task-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="task-progress-fill"></div>
+                </div>
+                <p id="task-status">Starting excavation...</p>
+            </div>
+            <button class="action-btn" id="close-task-modal" style="display: none;">Close</button>
+        </div>
+    </div>
+
+    <!-- Map View (Fullscreen) -->
+    <div class="map-view" id="map-view" style="display: none;">
+        <div class="map-header">
+            <h2>Mesopotamia - 19th Century</h2>
+            <button class="action-btn" id="close-map-modal">Close Map</button>
+        </div>
+        <div class="map-container" id="map-container">
+            <!-- Sites will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Message/Notification Area -->
+    <div class="notifications" id="notifications"></div>
+
+    <!-- Scripts -->
+    <script src="public/gameController.js"></script>
+</body>
+</html>
+

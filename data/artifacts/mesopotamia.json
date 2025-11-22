@@ -1,0 +1,125 @@
+{
+  "artifacts": [
+    {
+      "type": "stamped_brick",
+      "name": "Stamped Brick",
+      "styles": ["Neo-Sumerian", "Akkadian", "Babylonian"],
+      "materials": ["Clay"],
+      "periods": ["Ur III", "Old Babylonian", "Neo-Babylonian"],
+      "baseRarity": "common",
+      "inscriptionTypes": ["Royal Building Inscription", "Foundation Inscription"],
+      "bonuses": [
+        {
+          "type": "Mentioning ruler",
+          "value": 2
+        },
+        {
+          "type": "Mentioning place name",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "type": "cuneiform_tablet",
+      "name": "Cuneiform Tablet",
+      "styles": ["Sumerian", "Akkadian", "Babylonian", "Assyrian"],
+      "materials": ["Clay"],
+      "periods": ["Early Dynastic", "Akkadian", "Ur III", "Old Babylonian", "Neo-Babylonian"],
+      "baseRarity": "uncommon",
+      "inscriptionTypes": ["Administrative Record", "Legal Document", "Literary Text", "Religious Text"],
+      "bonuses": [
+        {
+          "type": "Complete text",
+          "value": 3
+        },
+        {
+          "type": "Historical significance",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "type": "cylinder_seal",
+      "name": "Cylinder Seal",
+      "styles": ["Sumerian", "Akkadian", "Babylonian", "Assyrian"],
+      "materials": ["Stone", "Lapis Lazuli", "Carnelian"],
+      "periods": ["Early Dynastic", "Akkadian", "Ur III", "Old Babylonian"],
+      "baseRarity": "rare",
+      "inscriptionTypes": ["Owner Inscription", "Dedication"],
+      "bonuses": [
+        {
+          "type": "Royal seal",
+          "value": 5
+        },
+        {
+          "type": "Complete scene",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "type": "pottery",
+      "name": "Pottery Vessel",
+      "styles": ["Ubaid", "Uruk", "Jemdet Nasr", "Early Dynastic"],
+      "materials": ["Clay"],
+      "periods": ["Prehistoric", "Early Dynastic", "Various"],
+      "baseRarity": "common",
+      "inscriptionTypes": null,
+      "bonuses": []
+    },
+    {
+      "type": "jewelry",
+      "name": "Gold Jewelry",
+      "styles": ["Mesopotamian", "Royal"],
+      "materials": ["Gold", "Silver", "Lapis Lazuli"],
+      "periods": ["Ur III", "Old Babylonian", "Neo-Babylonian"],
+      "baseRarity": "epic",
+      "inscriptionTypes": null,
+      "bonuses": [
+        {
+          "type": "Royal provenance",
+          "value": 4
+        },
+        {
+          "type": "Complete set",
+          "value": 3
+        }
+      ],
+      "sets": ["The Local Chief", "Royal Treasure"]
+    },
+    {
+      "type": "statue",
+      "name": "Stone Statue",
+      "styles": ["Sumerian", "Akkadian", "Babylonian"],
+      "materials": ["Stone", "Diorite", "Limestone"],
+      "periods": ["Early Dynastic", "Akkadian", "Old Babylonian"],
+      "baseRarity": "rare",
+      "inscriptionTypes": ["Dedication", "Royal Inscription"],
+      "bonuses": [
+        {
+          "type": "Complete statue",
+          "value": 3
+        },
+        {
+          "type": "Royal figure",
+          "value": 4
+        }
+      ]
+    }
+  ],
+  "sets": [
+    {
+      "name": "The Local Chief",
+      "artifacts": ["jewelry", "cylinder_seal", "stamped_brick"],
+      "bonus": 2.0,
+      "description": "A collection of artifacts belonging to a local chief from the Ur III period"
+    },
+    {
+      "name": "Royal Treasure",
+      "artifacts": ["jewelry", "statue", "cylinder_seal", "cuneiform_tablet"],
+      "bonus": 3.0,
+      "description": "A complete royal collection from a Mesopotamian palace"
+    }
+  ]
+}
+

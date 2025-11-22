@@ -1,0 +1,50 @@
+{
+  "sites": [
+    {
+      "name": "Site 1",
+      "size": 3,
+      "difficulty": "medium",
+      "layers": 5,
+      "historicalPeriod": "Ur III",
+      "mapLocation": { "x": 10, "y": 15 },
+      "description": "A medium-sized site from the Ur III period, likely containing administrative buildings and residential areas."
+    },
+    {
+      "name": "Nippur",
+      "size": 5,
+      "difficulty": "hard",
+      "layers": 7,
+      "historicalPeriod": "Old Babylonian",
+      "mapLocation": { "x": 25, "y": 30 },
+      "description": "The ancient religious center of Mesopotamia, containing multiple temple complexes and administrative archives."
+    },
+    {
+      "name": "Ur",
+      "size": 7,
+      "difficulty": "expert",
+      "layers": 8,
+      "historicalPeriod": "Ur III",
+      "mapLocation": { "x": 40, "y": 20 },
+      "description": "The great city of Ur, home to royal tombs and ziggurats. Requires extensive resources but yields legendary artifacts."
+    },
+    {
+      "name": "Small Settlement",
+      "size": 3,
+      "difficulty": "easy",
+      "layers": 3,
+      "historicalPeriod": "Early Dynastic",
+      "mapLocation": { "x": 5, "y": 5 },
+      "description": "A small early settlement, perfect for beginners. Contains common artifacts and basic structures."
+    },
+    {
+      "name": "Babylon",
+      "size": 9,
+      "difficulty": "expert",
+      "layers": 10,
+      "historicalPeriod": "Neo-Babylonian",
+      "mapLocation": { "x": 50, "y": 45 },
+      "description": "The legendary city of Babylon. The most challenging site, but home to the most valuable artifacts in Mesopotamia."
+    }
+  ]
+}
+

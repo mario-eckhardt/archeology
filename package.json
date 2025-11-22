@@ -1,0 +1,26 @@
+{
+  "name": "archeology-in-mesopotamia",
+  "version": "0.1.0",
+  "description": "A simulation game about archaeology set in 19th century Mesopotamia",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "example": "ts-node src/examples/gameExample.ts"
+  },
+  "keywords": [
+    "game",
+    "simulation",
+    "archaeology",
+    "mesopotamia",
+    "strategy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
+
