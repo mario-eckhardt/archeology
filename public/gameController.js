@@ -507,6 +507,7 @@ class GameController {
         this.playerModel = new PlayerModel(1000);
         this.excavationSystem = new ExcavationSystem();
         this.identificationSystem = new IdentificationSystem();
+        this.resizeTimeout = null;
         this.init();
     }
 
@@ -555,6 +556,14 @@ class GameController {
         // Close map button
         document.getElementById('close-map-modal').addEventListener('click', () => {
             this.hideMap();
+        });
+
+        // Handle viewport changes for responsive layout
+        window.addEventListener('resize', () => {
+            clearTimeout(this.resizeTimeout);
+            this.resizeTimeout = setTimeout(() => {
+                this.renderTiles();
+            }, 150);
         });
 
         // Layer controls removed
@@ -658,10 +667,11 @@ class GameController {
         
         // Show main content again
         if (mainContainer) {
-            mainContainer.style.display = 'grid';
+            mainContainer.style.display = '';
         }
         
         mapView.style.display = 'none';
+        this.renderTiles();
     }
 
     selectSiteFromMap(siteName) {
@@ -734,14 +744,28 @@ class GameController {
 
         console.log(`Rendering ${this.state.tiles.size} tiles`);
 
-        // Render tiles in isometric grid
+        // Determine sizing based on available space
         const gridSize = 3;
+        const containerWidth = container.clientWidth || container.parentElement?.clientWidth || 0;
+        const containerHeight = container.clientHeight || 360;
+        if (containerWidth === 0) {
+            return;
+        }
+        const availableWidth = Math.max(containerWidth - 40, 200);
+        const tileSize = Math.max(40, Math.min(70, availableWidth / (gridSize * 1.8)));
+        const spacingX = tileSize * 0.92;
+        const spacingY = tileSize * 0.5;
+        const centerX = containerWidth / 2;
+        const centerY = Math.max(containerHeight / 3, tileSize * gridSize);
+
         this.state.tiles.forEach((tile, tileId) => {
             const tileElement = document.createElement('div');
             tileElement.className = 'tile isometric-tile';
             tileElement.dataset.tileId = tileId;
             tileElement.dataset.x = tile.position.x;
             tileElement.dataset.y = tile.position.y;
+            tileElement.style.width = `${tileSize}px`;
+            tileElement.style.height = `${tileSize}px`;
             
             // Check if tile is excavated
             if (tile.excavated) {
@@ -756,12 +780,6 @@ class GameController {
 
             // Calculate isometric position (isometric projection)
             // For a 3x3 grid, center it in the container
-            const tileSize = 60;
-            const spacingX = 55; // Horizontal spacing in isometric view
-            const spacingY = 28; // Vertical spacing in isometric view
-            const centerX = 200; // Center of container
-            const centerY = 150;
-            
             // Isometric projection: x and y affect both horizontal and vertical position
             // Formula: isoX = (x - y) * spacing, isoY = (x + y) * spacing/2
             const isoX = (tile.position.x - tile.position.y) * spacingX;
