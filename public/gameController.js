@@ -551,20 +551,30 @@ class GameController {
 
     init() {
         // Wait a tiny bit to ensure DOM is fully ready
-        setTimeout(() => {
+        // Since we're already in DOMContentLoaded, we can use a small delay or check immediately
+        const initGame = () => {
             try {
-        this.setupEventListeners();
-        this.updateUI();
-        this.createInitialSite();
-        this.renderArtifacts();
+                this.setupEventListeners();
+                this.updateUI();
+                this.createInitialSite();
+                this.renderArtifacts();
                 console.log('Game initialized successfully');
             } catch (error) {
                 console.error('Error during initialization:', error);
             }
-        }, 10);
+        };
+        
+        // Check if DOM is ready, otherwise wait
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initGame);
+        } else {
+            // DOM is already ready, but wait a tiny bit for all elements to be parsed
+            setTimeout(initGame, 10);
+        }
     }
 
     setupEventListeners() {
+        try {
         // Excavation method buttons
         const surfaceCollectionBtn = document.getElementById('surface-collection-btn');
         const excavationBtn = document.getElementById('excavation-btn');
@@ -660,6 +670,11 @@ class GameController {
         }
 
         // Layer controls removed
+        } catch (error) {
+            console.error('Error in setupEventListeners:', error);
+            console.error('Error stack:', error.stack);
+            // Try to continue anyway - some features might still work
+        }
     }
 
     selectExcavationMethod(method) {
