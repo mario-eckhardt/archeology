@@ -19,20 +19,16 @@
                 <span id="money">1000</span>
             </div>
             <div class="resource-item">
-                <span class="resource-icon">⛏️</span>
-                <span id="shovels">1 / 5</span>
-            </div>
-            <div class="resource-item">
                 <span class="resource-icon">👷</span>
-                <span id="workers">0 Workers</span>
+                <span id="workers">0</span>
             </div>
             <div class="resource-item">
                 <span class="resource-icon">👤</span>
-                <span id="archaeologists">0 / 5</span>
+                <span id="archaeologists">0</span>
             </div>
             <div class="resource-item">
                 <span class="resource-icon">📚</span>
-                <span id="linguists">0 / 2</span>
+                <span id="linguists">0</span>
             </div>
             <div class="resource-item">
                 <span class="resource-icon">🌡️</span>
@@ -55,36 +51,51 @@
         <!-- Left Sidebar - Excavation Methods -->
         <div class="sidebar">
             <h3>Excavation Methods</h3>
-            <button class="excavation-btn" id="surface-collection-btn">
-                Surface Collection
-            </button>
-            <button class="excavation-btn" id="excavation-btn">
-                Excavation
-            </button>
-            <button class="excavation-btn" id="trench-btn">
-                Trench
-            </button>
+            <div class="excavation-methods">
+                <button class="excavation-btn icon-btn" id="surface-collection-btn" title="Surface Collection - Quick surface survey">
+                    <span class="method-icon">🔍</span>
+                    <span class="method-cost">$50</span>
+                </button>
+                <button class="excavation-btn icon-btn" id="excavation-btn" title="Excavation - Standard digging method">
+                    <span class="method-icon">⛏️</span>
+                    <span class="method-cost">$200</span>
+                </button>
+                <button class="excavation-btn icon-btn" id="trench-btn" title="Trench - Deep systematic excavation">
+                    <span class="method-icon">🕳️</span>
+                    <span class="method-cost">$500</span>
+                </button>
+            </div>
+            
+            <h3>Structures</h3>
+            <div class="structures-section">
+                <div class="structure-methods">
+                    <button class="structure-btn icon-btn" id="tent-btn" title="Tent - $100, +10 storage slots">
+                        <span class="structure-icon">⛺</span>
+                        <span class="structure-cost">$100</span>
+                    </button>
+                    <button class="structure-btn icon-btn" id="dig-house-btn" title="Dig House - $500, +100 storage slots">
+                        <span class="structure-icon">🏠</span>
+                        <span class="structure-cost">$500</span>
+                    </button>
+                </div>
+            </div>
             
             <div class="personnel-section">
-                <h4>Personnel</h4>
-                <div class="personnel-controls">
-                    <div class="personnel-item">
-                        <label>Workers:</label>
-                        <input type="number" id="workers-input" min="0" value="0" max="10">
-                        <span class="cost">$50 each</span>
-                    </div>
-                    <div class="personnel-item">
-                        <label>Archaeologists:</label>
-                        <input type="number" id="archaeologists-input" min="0" value="0" max="5">
-                        <span class="cost">$200 each</span>
-                    </div>
-                    <div class="personnel-item">
-                        <label>Linguists:</label>
-                        <input type="number" id="linguists-input" min="0" value="0" max="2">
-                        <span class="cost">$500 each</span>
-                    </div>
+                <h3>Personnel</h3>
+                <div class="personnel-methods">
+                    <button class="personnel-btn icon-btn" id="hire-worker-btn" title="Hire Worker - $50">
+                        <span class="personnel-icon">👷</span>
+                        <span class="personnel-cost">$50</span>
+                    </button>
+                    <button class="personnel-btn icon-btn" id="hire-archaeologist-btn" title="Hire Archaeologist - $200">
+                        <span class="personnel-icon">👤</span>
+                        <span class="personnel-cost">$200</span>
+                    </button>
+                    <button class="personnel-btn icon-btn" id="hire-linguist-btn" title="Hire Linguist - $500">
+                        <span class="personnel-icon">📚</span>
+                        <span class="personnel-cost">$500</span>
+                    </button>
                 </div>
-                <button class="hire-btn" id="hire-btn">Hire Personnel</button>
             </div>
 
         </div>
@@ -104,14 +115,9 @@
 
         <!-- Right Sidebar - Artifacts and Inventory -->
         <div class="artifacts-panel">
-            <h3>Inventory</h3>
-            <div class="inventory-slots" id="inventory-slots">
-                <!-- Inventory slots will be generated here -->
-            </div>
-
             <h3>Artifacts</h3>
-            <div class="artifacts-list" id="artifacts-list">
-                <!-- Artifact cards will be displayed here -->
+            <div class="inventory-grid" id="inventory-grid">
+                <!-- Artifacts will be displayed as icons here -->
             </div>
         </div>
     </div>
@@ -138,6 +144,13 @@
         </div>
         <div class="map-container" id="map-container">
             <!-- Sites will be rendered here -->
+        </div>
+    </div>
+
+    <!-- Museum View (Fullscreen) -->
+    <div class="museum-view" id="museum-view" style="display: none;">
+        <div class="museum-interior" id="museum-interior">
+            <!-- Rooms with cases will be generated here -->
         </div>
     </div>
 

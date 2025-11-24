@@ -7,8 +7,8 @@ class GameState {
         this.player = {
             id: 'player_1',
             money: 1000,
-            workers: 0,
-            archaeologists: 0,
+            workers: 3,
+            archaeologists: 1,
             linguists: 0,
             reputation: 0
         };
@@ -20,6 +20,32 @@ class GameState {
         this.activeTask = null;
         this.selectedExcavationMethod = null;
         this.selectedTiles = [];
+        this.exhibitedArtifacts = {}; // Map of slotIndex -> artifactId
+        this.exhibitedArtifactsData = {}; // Map of slotIndex -> artifact object (for display)
+        this.storageCapacity = 20; // Base storage capacity
+        this.selectedStructure = null; // 'tent' or 'dig_house'
+        this.discoveredSites = new Set(['Tell Abu Salabikh']); // Track discovered sites
+        this.museumRooms = [
+            {
+                id: 'room_1',
+                name: 'Main Hall',
+                unlocked: true,
+                cases: [
+                    { id: 'case_1_1', unlocked: true, slots: 4 },
+                    { id: 'case_1_2', unlocked: false, slots: 3 },
+                    { id: 'case_1_3', unlocked: false, slots: 5 }
+                ]
+            },
+            {
+                id: 'room_2',
+                name: 'Ancient Artifacts Wing',
+                unlocked: false,
+                cases: [
+                    { id: 'case_2_1', unlocked: false, slots: 4 },
+                    { id: 'case_2_2', unlocked: false, slots: 3 }
+                ]
+            }
+        ]; // Museum structure: rooms with cases
     }
 }
 
@@ -29,8 +55,8 @@ class PlayerModel {
         this.player = {
             id: 'player_' + Date.now(),
             money: initialMoney,
-            workers: 0,
-            archaeologists: 0,
+            workers: 3,
+            archaeologists: 1,
             linguists: 0,
             reputation: 0
         };
@@ -260,17 +286,18 @@ class ArtefactModel {
             this.artefact.age = age;
             this.artefact.inscription = inscription;
             this.artefact.identificationDate = new Date();
-            this.artefact.value = Math.floor(this.artefact.value * (2 + Math.random() * 3));
+            // Increase value by 50-100% when identified
+            this.artefact.value = Math.floor(this.artefact.value * (1.5 + Math.random() * 0.5));
         }
     }
 
     calculateBaseValue(rarity) {
         switch (rarity) {
             case 'common': return 10 + Math.floor(Math.random() * 40);
-            case 'uncommon': return 50 + Math.floor(Math.random() * 150);
-            case 'rare': return 200 + Math.floor(Math.random() * 800);
-            case 'epic': return 1000 + Math.floor(Math.random() * 4000);
-            case 'legendary': return 5000 + Math.floor(Math.random() * 10000);
+            case 'uncommon': return 50 + Math.floor(Math.random() * 100);
+            case 'rare': return 200 + Math.floor(Math.random() * 300);
+            case 'very_rare': return 800 + Math.floor(Math.random() * 1200);
+            case 'legendary': return 3000 + Math.floor(Math.random() * 5000);
             default: return 10;
         }
     }
@@ -339,29 +366,35 @@ class ExcavationSystem {
             const commonTypes = ['pottery', 'tool', 'stamped_brick'];
             return {
                 type: commonTypes[Math.floor(Math.random() * commonTypes.length)],
-                rarity: 'common'
+                rarity: this.randomRarity(['common', 'common', 'common', 'uncommon']) // 75% common, 25% uncommon
             };
         }
 
         if (taskType === 'excavation') {
             const types = ['pottery', 'stamped_brick', 'cuneiform_tablet', 'cylinder_seal', 'tool', 'jewelry', 'statue', 'weapon'];
-            const rarities = ['common', 'uncommon', 'rare'];
+            // Weighted distribution: 30% common, 25% uncommon, 30% rare, 10% very_rare, 5% legendary
+            const rarity = this.randomRarity(['common', 'common', 'common', 'uncommon', 'uncommon', 'uncommon', 'rare', 'rare', 'rare', 'rare', 'rare', 'very_rare', 'very_rare', 'legendary']);
             return {
                 type: types[Math.floor(Math.random() * types.length)],
-                rarity: rarities[Math.floor(Math.random() * rarities.length)]
+                rarity: rarity
             };
         }
 
         if (taskType === 'trench') {
             const valuableTypes = ['cuneiform_tablet', 'cylinder_seal', 'jewelry', 'statue'];
-            const rarities = ['uncommon', 'rare', 'epic'];
+            // Weighted distribution: 10% uncommon, 50% rare, 30% very_rare, 10% legendary
+            const rarity = this.randomRarity(['uncommon', 'rare', 'rare', 'rare', 'rare', 'rare', 'very_rare', 'very_rare', 'very_rare', 'legendary']);
             return {
                 type: valuableTypes[Math.floor(Math.random() * valuableTypes.length)],
-                rarity: rarities[Math.floor(Math.random() * rarities.length)]
+                rarity: rarity
             };
         }
 
         return { type: 'unidentified', rarity: 'common' };
+    }
+
+    randomRarity(weightedArray) {
+        return weightedArray[Math.floor(Math.random() * weightedArray.length)];
     }
 }
 
@@ -412,6 +445,12 @@ class IdentificationSystem {
     }
 
     getIdentificationRequirements(artifact) {
+        // Only Rare+ items can be identified
+        const rareRarities = ['rare', 'very_rare', 'legendary'];
+        if (!rareRarities.includes(artifact.rarity)) {
+            return { archaeologists: 999, linguists: 999, time: 999 }; // Prevent identification
+        }
+
         const basicTypes = ['pottery', 'tool', 'weapon'];
         if (basicTypes.includes(artifact.type)) {
             return { archaeologists: 1, linguists: 0, time: 1 };
@@ -514,10 +553,10 @@ class GameController {
         // Wait a tiny bit to ensure DOM is fully ready
         setTimeout(() => {
             try {
-                this.setupEventListeners();
-                this.updateUI();
-                this.createInitialSite();
-                this.createInventorySlots();
+        this.setupEventListeners();
+        this.updateUI();
+        this.createInitialSite();
+        this.renderArtifacts();
                 console.log('Game initialized successfully');
             } catch (error) {
                 console.error('Error during initialization:', error);
@@ -527,20 +566,61 @@ class GameController {
 
     setupEventListeners() {
         // Excavation method buttons
-        document.getElementById('surface-collection-btn').addEventListener('click', () => {
-            this.selectExcavationMethod('surface_collection');
-        });
-        document.getElementById('excavation-btn').addEventListener('click', () => {
-            this.selectExcavationMethod('excavation');
-        });
-        document.getElementById('trench-btn').addEventListener('click', () => {
-            this.selectExcavationMethod('trench');
-        });
+        const surfaceCollectionBtn = document.getElementById('surface-collection-btn');
+        const excavationBtn = document.getElementById('excavation-btn');
+        const trenchBtn = document.getElementById('trench-btn');
+        
+        if (surfaceCollectionBtn) {
+            surfaceCollectionBtn.addEventListener('click', () => {
+                this.selectExcavationMethod('surface_collection');
+            });
+        }
+        if (excavationBtn) {
+            excavationBtn.addEventListener('click', () => {
+                this.selectExcavationMethod('excavation');
+            });
+        }
+        if (trenchBtn) {
+            trenchBtn.addEventListener('click', () => {
+                this.selectExcavationMethod('trench');
+            });
+        }
 
-        // Hire personnel
-        document.getElementById('hire-btn').addEventListener('click', () => {
-            this.hirePersonnel();
-        });
+        // Structure buttons
+        const tentBtn = document.getElementById('tent-btn');
+        const digHouseBtn = document.getElementById('dig-house-btn');
+        
+        if (tentBtn) {
+            tentBtn.addEventListener('click', () => {
+                this.selectStructure('tent');
+            });
+        }
+        if (digHouseBtn) {
+            digHouseBtn.addEventListener('click', () => {
+                this.selectStructure('dig_house');
+            });
+        }
+
+        // Hire personnel buttons
+        const hireWorkerBtn = document.getElementById('hire-worker-btn');
+        const hireArchaeologistBtn = document.getElementById('hire-archaeologist-btn');
+        const hireLinguistBtn = document.getElementById('hire-linguist-btn');
+        
+        if (hireWorkerBtn) {
+            hireWorkerBtn.addEventListener('click', () => {
+                this.hirePersonnel('worker');
+            });
+        }
+        if (hireArchaeologistBtn) {
+            hireArchaeologistBtn.addEventListener('click', () => {
+                this.hirePersonnel('archaeologist');
+            });
+        }
+        if (hireLinguistBtn) {
+            hireLinguistBtn.addEventListener('click', () => {
+                this.hirePersonnel('linguist');
+            });
+        }
 
         // Site controls
         document.getElementById('start-excavation-btn').addEventListener('click', () => {
@@ -557,35 +637,107 @@ class GameController {
             this.hideMap();
         });
 
+        // Museum button
+        document.getElementById('museum-btn').addEventListener('click', () => {
+            if (document.getElementById('museum-view').style.display === 'none' || 
+                document.getElementById('museum-view').style.display === '') {
+                this.showMuseum();
+            } else {
+                this.hideMuseum();
+            }
+        });
+
         // Layer controls removed
     }
 
     selectExcavationMethod(method) {
         this.state.selectedExcavationMethod = method;
+        this.state.selectedStructure = null; // Clear structure selection
         document.querySelectorAll('.excavation-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`${method.replace('_', '-')}-btn`).classList.add('active');
+        document.querySelectorAll('.structure-btn').forEach(btn => btn.classList.remove('active'));
+        
+        // Map method names to button IDs
+        const buttonIdMap = {
+            'surface_collection': 'surface-collection-btn',
+            'excavation': 'excavation-btn',
+            'trench': 'trench-btn'
+        };
+        
+        const buttonId = buttonIdMap[method];
+        if (buttonId) {
+            const btn = document.getElementById(buttonId);
+            if (btn) {
+                btn.classList.add('active');
+            }
+        }
+        
         this.state.selectedTiles = [];
         this.updateTileSelection();
     }
 
-    hirePersonnel() {
-        const workers = parseInt(document.getElementById('workers-input').value) || 0;
-        const archaeologists = parseInt(document.getElementById('archaeologists-input').value) || 0;
-        const linguists = parseInt(document.getElementById('linguists-input').value) || 0;
+    selectStructure(structure) {
+        this.state.selectedStructure = structure;
+        this.state.selectedExcavationMethod = null; // Clear excavation method selection
+        document.querySelectorAll('.excavation-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.structure-btn').forEach(btn => btn.classList.remove('active'));
+        if (structure === 'tent') {
+            document.getElementById('tent-btn').classList.add('active');
+        } else if (structure === 'dig_house') {
+            document.getElementById('dig-house-btn').classList.add('active');
+        }
+        this.state.selectedTiles = [];
+        this.updateTileSelection();
+    }
 
-        const totalCost = workers * 50 + archaeologists * 200 + linguists * 500;
+    hirePersonnel(type) {
+        const costs = {
+            'worker': 50,
+            'archaeologist': 200,
+            'linguist': 500
+        };
+        
+        const maxCounts = {
+            'worker': 10,
+            'archaeologist': 5,
+            'linguist': 2
+        };
+        
+        const cost = costs[type];
+        const maxCount = maxCounts[type];
         const player = this.playerModel.getPlayer();
-
-        if (player.money < totalCost) {
-            this.showNotification('Insufficient funds!', 'error');
+        
+        // Check current count
+        let currentCount = 0;
+        if (type === 'worker') {
+            currentCount = player.workers;
+        } else if (type === 'archaeologist') {
+            currentCount = player.archaeologists;
+        } else if (type === 'linguist') {
+            currentCount = player.linguists;
+        }
+        
+        if (currentCount >= maxCount) {
+            this.showNotification(`Maximum ${type}s already hired (${maxCount})`, 'info');
             return;
         }
-
-        if (workers > 0) this.playerModel.hireWorkers(workers);
-        if (archaeologists > 0) this.playerModel.hireArchaeologists(archaeologists);
-        if (linguists > 0) this.playerModel.hireLinguists(linguists);
-
-        this.showNotification(`Hired ${workers} workers, ${archaeologists} archaeologists, ${linguists} linguists`, 'success');
+        
+        if (player.money < cost) {
+            this.showNotification(`Insufficient funds! Need $${cost}`, 'error');
+            return;
+        }
+        
+        // Hire one person
+        if (type === 'worker') {
+            this.playerModel.hireWorkers(1);
+            this.showNotification('Hired 1 worker', 'success');
+        } else if (type === 'archaeologist') {
+            this.playerModel.hireArchaeologists(1);
+            this.showNotification('Hired 1 archaeologist', 'success');
+        } else if (type === 'linguist') {
+            this.playerModel.hireLinguists(1);
+            this.showNotification('Hired 1 linguist', 'success');
+        }
+        
         this.updateUI();
     }
 
@@ -616,34 +768,37 @@ class GameController {
         
         // Define sites on the map
         const mapSites = [
-            { name: 'Tell Abu Salabikh', x: 45, y: 40, discovered: true },
-            { name: 'Nippur', x: 60, y: 50, discovered: false },
-            { name: 'Ur', x: 30, y: 35, discovered: false },
-            { name: 'Babylon', x: 70, y: 60, discovered: false },
-            { name: 'Uruk', x: 25, y: 55, discovered: false },
-            { name: 'Kish', x: 50, y: 30, discovered: false }
+            { name: 'Tell Abu Salabikh', x: 45, y: 40 },
+            { name: 'Nippur', x: 60, y: 50 },
+            { name: 'Ur', x: 30, y: 35 },
+            { name: 'Babylon', x: 70, y: 60 },
+            { name: 'Uruk', x: 25, y: 55 },
+            { name: 'Kish', x: 50, y: 30 }
         ];
         
         mapContainer.innerHTML = '';
         
         mapSites.forEach(site => {
+            const isDiscovered = this.state.discoveredSites.has(site.name);
+            
             const siteMarker = document.createElement('div');
             siteMarker.className = 'map-site-marker';
             siteMarker.dataset.siteName = site.name;
             siteMarker.style.left = `${site.x}%`;
             siteMarker.style.top = `${site.y}%`;
             
-            if (site.discovered) {
+            if (isDiscovered) {
                 siteMarker.classList.add('discovered');
+                
+                // Only show name if discovered
+                const siteLabel = document.createElement('div');
+                siteLabel.className = 'map-site-label';
+                siteLabel.textContent = site.name;
+                siteMarker.appendChild(siteLabel);
             }
             
-            const siteLabel = document.createElement('div');
-            siteLabel.className = 'map-site-label';
-            siteLabel.textContent = site.name;
-            siteMarker.appendChild(siteLabel);
-            
             siteMarker.addEventListener('click', () => {
-                this.selectSiteFromMap(site.name);
+                this.selectSiteFromMap(site.name, isDiscovered);
             });
             
             mapContainer.appendChild(siteMarker);
@@ -664,38 +819,576 @@ class GameController {
         mapView.style.display = 'none';
     }
 
-    selectSiteFromMap(siteName) {
+    selectSiteFromMap(siteName, isDiscovered) {
         // If clicking on Abu Salabikh, go back to site view
         if (siteName === 'Tell Abu Salabikh') {
             this.hideMap();
             // Site is already loaded, just ensure view is updated
             this.updateSiteView();
             this.showNotification('Returning to Tell Abu Salabikh', 'info');
+        } else if (isDiscovered) {
+            // Site is discovered, show notification
+            this.showNotification(`${siteName} is already discovered`, 'info');
         } else {
-            // For other sites, show that they're not yet discovered
-            this.showNotification(`${siteName} has not been discovered yet!`, 'info');
+            // Show sounding modal for undiscovered sites
+            this.showSoundingModal(siteName);
+        }
+    }
+
+    showSoundingModal(siteName) {
+        // Remove any existing modal
+        const existingModal = document.getElementById('sounding-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.id = 'sounding-modal';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>Undiscovered Site</h3>
+                <p>This site has not been explored yet. Perform a sounding to discover its name.</p>
+                <div class="modal-actions">
+                    <button class="action-btn" onclick="gameController.performSounding('${siteName}')">
+                        Sounding ($200)
+                    </button>
+                    <button class="action-btn" onclick="document.getElementById('sounding-modal').remove()" style="background: #999;">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+
+    performSounding(siteName) {
+        const player = this.playerModel.getPlayer();
+        const cost = 200;
+        
+        if (player.money < cost) {
+            this.showNotification(`Insufficient funds! Need $${cost}`, 'error');
+            return;
+        }
+        
+        // Spend money
+        this.playerModel.spendMoney(cost);
+        
+        // Discover the site
+        this.state.discoveredSites.add(siteName);
+        
+        // Update UI
+        this.updateUI();
+        
+        // Remove modal
+        const modal = document.getElementById('sounding-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        // Refresh map to show the name
+        this.showMap();
+        
+        this.showNotification(`Discovered: ${siteName}!`, 'success');
+    }
+
+    showMuseum() {
+        const museumView = document.getElementById('museum-view');
+        const mainContainer = document.querySelector('.main-container');
+        const museumBtn = document.getElementById('museum-btn');
+        
+        // Hide main content
+        if (mainContainer) {
+            mainContainer.style.display = 'none';
+        }
+        
+        // Highlight museum button
+        if (museumBtn) {
+            museumBtn.classList.add('active');
+        }
+        
+        // Generate exhibition slots
+        this.generateExhibitionSlots();
+        
+        museumView.style.display = 'flex';
+    }
+
+    hideMuseum() {
+        const museumView = document.getElementById('museum-view');
+        const mainContainer = document.querySelector('.main-container');
+        const museumBtn = document.getElementById('museum-btn');
+        
+        // Show main content again
+        if (mainContainer) {
+            mainContainer.style.display = 'grid';
+        }
+        
+        // Remove highlight from museum button
+        if (museumBtn) {
+            museumBtn.classList.remove('active');
+        }
+        
+        museumView.style.display = 'none';
+    }
+
+    generateExhibitionSlots() {
+        const container = document.getElementById('museum-interior');
+        if (!container) return;
+        
+        // Ensure exhibitedArtifactsData is initialized
+        if (!this.state.exhibitedArtifactsData) {
+            this.state.exhibitedArtifactsData = {};
+        }
+        if (!this.state.exhibitedArtifacts) {
+            this.state.exhibitedArtifacts = {};
+        }
+        
+        container.innerHTML = '';
+        
+        let globalSlotIndex = 0;
+        
+        console.log('Generating exhibition slots. Exhibited artifacts:', this.state.exhibitedArtifacts);
+        console.log('Exhibited artifacts data:', this.state.exhibitedArtifactsData);
+        
+        this.state.museumRooms.forEach((room, roomIndex) => {
+            const roomElement = document.createElement('div');
+            roomElement.className = 'museum-room';
+            roomElement.dataset.roomId = room.id;
+            
+            if (!room.unlocked) {
+                roomElement.classList.add('locked');
+            }
+            
+            const roomHeader = document.createElement('div');
+            roomHeader.className = 'museum-room-header';
+            
+            const roomTitle = document.createElement('h3');
+            roomTitle.textContent = room.name;
+            roomHeader.appendChild(roomTitle);
+            
+            // Add unlock room button if locked
+            if (!room.unlocked) {
+                const unlockRoomBtn = document.createElement('button');
+                unlockRoomBtn.className = 'unlock-btn';
+                unlockRoomBtn.textContent = `Unlock Room ($${this.getRoomUnlockCost(roomIndex)})`;
+                unlockRoomBtn.onclick = () => {
+                    this.unlockRoom(roomIndex);
+                };
+                roomHeader.appendChild(unlockRoomBtn);
+            }
+            
+            roomElement.appendChild(roomHeader);
+            
+            if (room.unlocked) {
+                const casesContainer = document.createElement('div');
+                casesContainer.className = 'museum-cases';
+                
+                room.cases.forEach((displayCase, caseIndex) => {
+                    const caseElement = document.createElement('div');
+                    caseElement.className = 'display-case';
+                    caseElement.dataset.caseId = displayCase.id;
+                    
+                    if (!displayCase.unlocked) {
+                        caseElement.classList.add('locked');
+                    }
+                    
+                    const caseHeader = document.createElement('div');
+                    caseHeader.className = 'display-case-header';
+                    
+                    // Add unlock case button if locked
+                    if (!displayCase.unlocked) {
+                        const unlockCaseBtn = document.createElement('button');
+                        unlockCaseBtn.className = 'unlock-btn small';
+                        unlockCaseBtn.textContent = `Unlock ($${this.getCaseUnlockCost(roomIndex, caseIndex)})`;
+                        unlockCaseBtn.onclick = () => {
+                            this.unlockCase(roomIndex, caseIndex);
+                        };
+                        caseHeader.appendChild(unlockCaseBtn);
+                        caseElement.appendChild(caseHeader);
+                    }
+                    
+                    if (displayCase.unlocked) {
+                        const slotsGrid = document.createElement('div');
+                        slotsGrid.className = 'exhibition-grid';
+                        
+                        for (let slotIndex = 0; slotIndex < displayCase.slots; slotIndex++) {
+                            const slot = document.createElement('div');
+                            slot.className = 'exhibition-slot';
+                            slot.dataset.slotIndex = globalSlotIndex;
+                            
+                            // Check if there's an artifact in this slot
+                            // Ensure we check with the same type (number) as stored
+                            const slotKey = Number(globalSlotIndex);
+                            const displayedArtifactId = this.state.exhibitedArtifacts ? 
+                                (this.state.exhibitedArtifacts[slotKey] || this.state.exhibitedArtifacts[String(slotKey)]) : null;
+                            
+                            console.log(`Rendering slot ${slotKey} (${typeof slotKey}): checking for artifact, found ID:`, displayedArtifactId);
+                            console.log(`Available keys in exhibitedArtifacts:`, this.state.exhibitedArtifacts ? Object.keys(this.state.exhibitedArtifacts) : 'none');
+                            console.log(`Available keys in exhibitedArtifactsData:`, this.state.exhibitedArtifactsData ? Object.keys(this.state.exhibitedArtifactsData) : 'none');
+                            
+                            if (displayedArtifactId) {
+                                slot.classList.add('filled');
+                                // Get artifact from exhibited artifacts data (since it's removed from inventory)
+                                // Check both number and string keys
+                                const artifact = this.state.exhibitedArtifactsData ? 
+                                    (this.state.exhibitedArtifactsData[slotKey] || this.state.exhibitedArtifactsData[String(slotKey)]) : null;
+                                
+                                console.log(`Slot ${globalSlotIndex}: artifactId=${displayedArtifactId}, artifact data:`, artifact);
+                                
+                                if (artifact) {
+                                    const icon = document.createElement('div');
+                                    icon.className = 'exhibition-icon';
+                                    icon.textContent = this.getArtifactIcon(artifact.type);
+                                    slot.appendChild(icon);
+                                    
+                                    const label = document.createElement('div');
+                                    label.className = 'exhibition-label';
+                                    label.textContent = artifact.name;
+                                    slot.appendChild(label);
+                                    
+                                    // Add remove button
+                                    const removeBtn = document.createElement('button');
+                                    removeBtn.className = 'exhibition-remove';
+                                    removeBtn.textContent = '×';
+                                    removeBtn.onclick = (e) => {
+                                        e.stopPropagation();
+                                        this.removeFromExhibition(slotKey);
+                                    };
+                                    slot.appendChild(removeBtn);
+                                } else {
+                                    console.warn(`Artifact data missing for slot ${slotKey}, artifactId: ${displayedArtifactId}`);
+                                    // Artifact ID exists but data is missing - try to find in inventory as fallback
+                                    const fallbackArtifact = this.state.artifacts.find(a => a.id === displayedArtifactId);
+                                    if (fallbackArtifact) {
+                                        console.log(`Found fallback artifact in inventory for slot ${slotKey}`);
+                                        // Restore the data
+                                        if (!this.state.exhibitedArtifactsData) {
+                                            this.state.exhibitedArtifactsData = {};
+                                        }
+                                        this.state.exhibitedArtifactsData[slotKey] = JSON.parse(JSON.stringify(fallbackArtifact));
+                                        
+                                        const icon = document.createElement('div');
+                                        icon.className = 'exhibition-icon';
+                                        icon.textContent = this.getArtifactIcon(fallbackArtifact.type);
+                                        slot.appendChild(icon);
+                                        
+                                        const label = document.createElement('div');
+                                        label.className = 'exhibition-label';
+                                        label.textContent = fallbackArtifact.name;
+                                        slot.appendChild(label);
+                                        
+                                        const removeBtn = document.createElement('button');
+                                        removeBtn.className = 'exhibition-remove';
+                                        removeBtn.textContent = '×';
+                                        removeBtn.onclick = (e) => {
+                                            e.stopPropagation();
+                                            this.removeFromExhibition(slotKey);
+                                        };
+                                        slot.appendChild(removeBtn);
+                                    } else {
+                                        console.error(`Cannot find artifact ${displayedArtifactId} anywhere for slot ${slotKey}`);
+                                    }
+                                }
+                            } else {
+                                // Empty slot - add click handler
+                                slot.addEventListener('click', () => {
+                                    console.log(`Slot ${slotKey} clicked, showing artifact selector`);
+                                    this.showArtifactSelector(slotKey);
+                                });
+                            }
+                            
+                            slotsGrid.appendChild(slot);
+                            globalSlotIndex++;
+                        }
+                        
+                        caseElement.appendChild(slotsGrid);
+                    }
+                    
+                    casesContainer.appendChild(caseElement);
+                });
+                
+                roomElement.appendChild(casesContainer);
+            }
+            
+            container.appendChild(roomElement);
+        });
+    }
+
+    getRoomUnlockCost(roomIndex) {
+        // First room is free, subsequent rooms cost more
+        return roomIndex === 0 ? 0 : 500 * (roomIndex + 1);
+    }
+
+    getCaseUnlockCost(roomIndex, caseIndex) {
+        // Cases cost based on position
+        return 200 * (caseIndex + 1);
+    }
+
+    unlockRoom(roomIndex) {
+        const room = this.state.museumRooms[roomIndex];
+        if (!room || room.unlocked) return;
+        
+        const cost = this.getRoomUnlockCost(roomIndex);
+        const player = this.playerModel.getPlayer();
+        
+        if (player.money < cost) {
+            this.showNotification(`Insufficient funds! Need $${cost}`, 'error');
+            return;
+        }
+        
+        this.playerModel.spendMoney(cost);
+        room.unlocked = true;
+        this.updateUI();
+        this.generateExhibitionSlots();
+        this.showNotification(`Unlocked ${room.name}!`, 'success');
+    }
+
+    unlockCase(roomIndex, caseIndex) {
+        const room = this.state.museumRooms[roomIndex];
+        if (!room || !room.unlocked) {
+            this.showNotification('Room must be unlocked first!', 'error');
+            return;
+        }
+        
+        const displayCase = room.cases[caseIndex];
+        if (!displayCase || displayCase.unlocked) return;
+        
+        const cost = this.getCaseUnlockCost(roomIndex, caseIndex);
+        const player = this.playerModel.getPlayer();
+        
+        if (player.money < cost) {
+            this.showNotification(`Insufficient funds! Need $${cost}`, 'error');
+            return;
+        }
+        
+        this.playerModel.spendMoney(cost);
+        displayCase.unlocked = true;
+        this.updateUI();
+        this.generateExhibitionSlots();
+        this.showNotification('Display case unlocked!', 'success');
+    }
+
+    addNewRoom(roomName) {
+        const roomId = `room_${this.state.museumRooms.length + 1}`;
+        const newRoom = {
+            id: roomId,
+            name: roomName,
+            unlocked: false,
+            cases: [
+                { id: `${roomId}_case_1`, unlocked: false, slots: 3 + Math.floor(Math.random() * 3) } // 3-5 slots
+            ]
+        };
+        this.state.museumRooms.push(newRoom);
+    }
+
+    addNewCase(roomIndex) {
+        const room = this.state.museumRooms[roomIndex];
+        if (!room) return;
+        
+        const caseId = `${room.id}_case_${room.cases.length + 1}`;
+        const newCase = {
+            id: caseId,
+            unlocked: false,
+            slots: 3 + Math.floor(Math.random() * 3) // 3-5 slots
+        };
+        room.cases.push(newCase);
+    }
+
+    showArtifactSelector(slotIndex) {
+        // Create modal for selecting artifact
+        const modal = document.createElement('div');
+        modal.className = 'modal show';
+        modal.id = 'artifact-selector-modal';
+        
+        const availableArtifacts = this.state.artifacts.filter(a => {
+            // Only show artifacts that aren't already exhibited
+            const exhibitedIds = this.state.exhibitedArtifacts ? Object.values(this.state.exhibitedArtifacts) : [];
+            return !exhibitedIds.includes(a.id);
+        });
+        
+        if (availableArtifacts.length === 0) {
+            this.showNotification('No available artifacts to display!', 'info');
+            return;
+        }
+        
+        modal.innerHTML = `
+            <div class="modal-content artifact-selector-content">
+                <h3>Select Artifact to Display</h3>
+                <div class="artifact-selector-grid">
+                    ${availableArtifacts.map(artifact => `
+                        <div class="artifact-selector-item" onclick="gameController.addToExhibition(${slotIndex}, '${artifact.id}')">
+                            <div class="artifact-selector-icon">${this.getArtifactIcon(artifact.type)}</div>
+                            <div class="artifact-selector-name">${artifact.name}</div>
+                            <div class="artifact-selector-value">$${artifact.value}</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="action-btn" onclick="document.getElementById('artifact-selector-modal').remove()">Cancel</button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
+    }
+
+    addToExhibition(slotIndex, artifactId) {
+        if (!this.state.exhibitedArtifacts) {
+            this.state.exhibitedArtifacts = {};
+        }
+        if (!this.state.exhibitedArtifactsData) {
+            this.state.exhibitedArtifactsData = {};
+        }
+        
+        // Find artifact in inventory
+        const artifactIndex = this.state.artifacts.findIndex(a => a.id === artifactId);
+        if (artifactIndex === -1) {
+            this.showNotification('Artifact not found in inventory!', 'error');
+            return;
+        }
+        
+        const artifact = this.state.artifacts[artifactIndex];
+        
+        // Add to exhibition (store both ID and data)
+        // Ensure slotIndex is stored as a number for consistency
+        const slotKey = Number(slotIndex);
+        this.state.exhibitedArtifacts[slotKey] = artifactId;
+        this.state.exhibitedArtifactsData[slotKey] = JSON.parse(JSON.stringify(artifact)); // Deep copy
+        
+        console.log(`Added artifact to exhibition: slot ${slotKey} (${typeof slotKey}), artifact:`, artifact);
+        console.log('Exhibited artifacts:', this.state.exhibitedArtifacts);
+        console.log('Exhibited artifacts data keys:', Object.keys(this.state.exhibitedArtifactsData));
+        console.log('Exhibited artifacts data:', this.state.exhibitedArtifactsData);
+        
+        // Remove from inventory
+        this.state.artifacts.splice(artifactIndex, 1);
+        
+        // Update displays
+        this.generateExhibitionSlots();
+        this.renderArtifacts();
+        this.updateUI();
+        
+        // Close selector modal
+        const modal = document.getElementById('artifact-selector-modal');
+        if (modal) {
+            modal.remove();
+        }
+        
+        this.showNotification('Artifact added to exhibition!', 'success');
+    }
+
+    removeFromExhibition(slotIndex) {
+        if (this.state.exhibitedArtifacts && this.state.exhibitedArtifacts[slotIndex]) {
+            // Get artifact data from exhibited artifacts
+            let artifact = this.state.exhibitedArtifactsData ? this.state.exhibitedArtifactsData[slotIndex] : null;
+            
+            if (!artifact) {
+                // Fallback: try to find in artifacts array
+                const artifactId = this.state.exhibitedArtifacts[slotIndex];
+                const foundArtifact = this.state.artifacts.find(a => a.id === artifactId);
+                if (!foundArtifact) {
+                    // Just remove from exhibition if we can't find it
+                    delete this.state.exhibitedArtifacts[slotIndex];
+                    if (this.state.exhibitedArtifactsData) {
+                        delete this.state.exhibitedArtifactsData[slotIndex];
+                    }
+                    this.generateExhibitionSlots();
+                    this.showNotification('Artifact removed from exhibition', 'info');
+                    return;
+                }
+                artifact = foundArtifact;
+            }
+            
+            // Check if inventory has space
+            if (this.state.artifacts.length >= this.state.storageCapacity) {
+                this.showNotification('Inventory full! Cannot return artifact to inventory.', 'warning');
+                return;
+            }
+            
+            // Return artifact to inventory
+            this.state.artifacts.push(artifact);
+            
+            // Remove from exhibition
+            delete this.state.exhibitedArtifacts[slotIndex];
+            delete this.state.exhibitedArtifactsData[slotIndex];
+            
+            // Update displays
+            this.generateExhibitionSlots();
+            this.renderArtifacts();
+            this.updateUI();
+            
+            this.showNotification('Artifact returned to inventory', 'info');
         }
     }
 
     generateTiles() {
-        // Completely simplified - just create 9 tiles in a 3x3 grid
+        // Create 9 tiles in a 3x3 grid with multiple layers
         this.state.tiles.clear();
         
         const gridSize = 3;
+        // Positions that will have a second layer (center and adjacent tiles)
+        const secondLayerPositions = [
+            { x: 1, y: 1 }, // center
+            { x: 1, y: 0 }, // top center
+            { x: 0, y: 1 }, // left center
+            { x: 2, y: 1 }, // right center
+            { x: 1, y: 2 }  // bottom center
+        ];
+        
+        // Positions that will have a third layer (just center)
+        const thirdLayerPositions = [
+            { x: 1, y: 1 } // center only
+        ];
+        
         for (let y = 0; y < gridSize; y++) {
             for (let x = 0; x < gridSize; x++) {
+                // Base layer tile
                 const tile = {
-                    id: `tile_${x}_${y}`,
+                    id: `tile_${x}_${y}_0`,
                     position: { x, y },
+                    layer: 0,
                     excavated: false,
                     artifacts: [],
                     structure: 'none'
                 };
                 this.state.tiles.set(tile.id, tile);
+                
+                // Add second layer tile for certain positions
+                if (secondLayerPositions.some(pos => pos.x === x && pos.y === y)) {
+                    const secondLayerTile = {
+                        id: `tile_${x}_${y}_1`,
+                        position: { x, y },
+                        layer: 1,
+                        excavated: false,
+                        artifacts: [],
+                        structure: 'none'
+                    };
+                    this.state.tiles.set(secondLayerTile.id, secondLayerTile);
+                }
+                
+                // Add third layer tile for center position
+                if (thirdLayerPositions.some(pos => pos.x === x && pos.y === y)) {
+                    const thirdLayerTile = {
+                        id: `tile_${x}_${y}_2`,
+                        position: { x, y },
+                        layer: 2,
+                        excavated: false,
+                        artifacts: [],
+                        structure: 'none'
+                    };
+                    this.state.tiles.set(thirdLayerTile.id, thirdLayerTile);
+                }
             }
         }
         
-        console.log(`Generated ${this.state.tiles.size} tiles in 3x3 grid`);
+        console.log(`Generated ${this.state.tiles.size} tiles in 3x3 grid with multiple layers`);
     }
     
     updateSiteView() {
@@ -736,6 +1429,18 @@ class GameController {
 
         // Render tiles in isometric grid
         const gridSize = 3;
+        const center = Math.floor(gridSize / 2);
+        
+        // First, find the highest layer for each position
+        const maxLayerByPosition = new Map();
+        this.state.tiles.forEach((tile) => {
+            const posKey = `${tile.position.x}_${tile.position.y}`;
+            const currentMax = maxLayerByPosition.get(posKey) || -1;
+            if ((tile.layer || 0) > currentMax) {
+                maxLayerByPosition.set(posKey, tile.layer || 0);
+            }
+        });
+        
         this.state.tiles.forEach((tile, tileId) => {
             const tileElement = document.createElement('div');
             tileElement.className = 'tile isometric-tile';
@@ -753,34 +1458,81 @@ class GameController {
             if (this.state.selectedTiles.includes(tileId)) {
                 tileElement.classList.add('selected');
             }
+            
+            // Add structure icon if tile has a structure (only on top layer)
+            // Calculate this before the positioning code
+            const posKeyForStructure = `${tile.position.x}_${tile.position.y}`;
+            const maxLayerForStructure = maxLayerByPosition.get(posKeyForStructure) || 0;
+            const isTopLayerForStructure = (tile.layer || 0) === maxLayerForStructure;
+            
+            if (isTopLayerForStructure && tile.structure && tile.structure !== 'none') {
+                const structureIcon = document.createElement('div');
+                structureIcon.className = 'tile-structure';
+                if (tile.structure === 'tent') {
+                    structureIcon.textContent = '⛺';
+                    structureIcon.title = 'Tent';
+                } else if (tile.structure === 'dig_house') {
+                    structureIcon.textContent = '🏠';
+                    structureIcon.title = 'Dig House';
+                }
+                tileElement.appendChild(structureIcon);
+            }
 
             // Calculate isometric position (isometric projection)
             // For a 3x3 grid, center it in the container
-            const tileSize = 60;
-            const spacingX = 55; // Horizontal spacing in isometric view
-            const spacingY = 28; // Vertical spacing in isometric view
-            const centerX = 200; // Center of container
-            const centerY = 150;
+            const tileWidth = 120;
+            const tileHeight = 60;
+            const spacingX = 85; // Horizontal spacing in isometric view
+            const spacingY = 42; // Vertical spacing in isometric view
+            const layerOffset = -15; // Vertical offset per layer (negative = higher)
             
             // Isometric projection: x and y affect both horizontal and vertical position
             // Formula: isoX = (x - y) * spacing, isoY = (x + y) * spacing/2
             const isoX = (tile.position.x - tile.position.y) * spacingX;
             const isoY = (tile.position.x + tile.position.y) * spacingY;
             
-            tileElement.style.left = `${centerX + isoX - tileSize/2}px`;
-            tileElement.style.top = `${centerY + isoY - tileSize/2}px`;
+            // Adjust vertical position based on layer (higher layers are positioned higher)
+            const layerAdjustment = (tile.layer || 0) * layerOffset;
             
-            tileElement.addEventListener('click', () => {
-                this.toggleTileSelection(tileId);
-            });
+            // Center in container (use 50% positioning)
+            // Account for rotated diamond dimensions
+            tileElement.style.left = `calc(50% + ${isoX - tileWidth/2}px)`;
+            tileElement.style.top = `calc(50% + ${isoY - tileHeight/2 + layerAdjustment}px)`;
+            tileElement.style.zIndex = (tile.layer || 0) + 1; // Higher layers have higher z-index
+            
+            // Only the topmost tile at each position is selectable
+            const posKey = `${tile.position.x}_${tile.position.y}`;
+            const maxLayer = maxLayerByPosition.get(posKey) || 0;
+            const isTopLayer = (tile.layer || 0) === maxLayer;
+            
+            if (!isTopLayer) {
+                tileElement.classList.add('non-selectable');
+                tileElement.style.pointerEvents = 'none';
+                tileElement.style.opacity = '0.6'; // Make lower layers slightly transparent
+            } else {
+                tileElement.addEventListener('click', () => {
+                    this.toggleTileSelection(tileId);
+                });
+            }
 
             container.appendChild(tileElement);
         });
     }
 
     toggleTileSelection(tileId) {
+        // Handle structure placement
+        if (this.state.selectedStructure) {
+            this.placeStructure(tileId, this.state.selectedStructure);
+            return;
+        }
+
+        // Handle excavation method selection
+        if (!this.state.selectedExcavationMethod && !this.state.selectedStructure) {
+            this.showNotification('Please select an excavation method or structure first!', 'info');
+            return;
+        }
+
         if (!this.state.selectedExcavationMethod) {
-            this.showNotification('Please select an excavation method first!', 'info');
             return;
         }
 
@@ -800,6 +1552,66 @@ class GameController {
             this.state.selectedTiles.push(tileId);
         }
         this.updateTileSelection();
+    }
+
+    placeStructure(tileId, structureType) {
+        const player = this.playerModel.getPlayer();
+        const tile = this.state.tiles.get(tileId);
+        if (!tile) return;
+
+        // Check if any tile at this position already has a structure
+        const posKey = `${tile.position.x}_${tile.position.y}`;
+        let hasStructure = false;
+        this.state.tiles.forEach((t) => {
+            if (`${t.position.x}_${t.position.y}` === posKey && t.structure && t.structure !== 'none') {
+                hasStructure = true;
+            }
+        });
+
+        if (hasStructure) {
+            this.showNotification('This position already has a structure!', 'info');
+            return;
+        }
+
+        const costs = {
+            'tent': 100,
+            'dig_house': 500
+        };
+        const storageBonuses = {
+            'tent': 10,
+            'dig_house': 100
+        };
+
+        const cost = costs[structureType];
+        const storageBonus = storageBonuses[structureType];
+
+        if (!cost || !storageBonus) {
+            this.showNotification('Invalid structure type!', 'error');
+            return;
+        }
+
+        if (player.money < cost) {
+            this.showNotification(`Insufficient funds! Need $${cost}`, 'error');
+            return;
+        }
+
+        // Spend money
+        this.playerModel.spendMoney(cost);
+
+        // Update tile structure (update all layers at this position)
+        this.state.tiles.forEach((t, id) => {
+            if (`${t.position.x}_${t.position.y}` === posKey) {
+                t.structure = structureType;
+            }
+        });
+
+        // Increase storage capacity
+        this.state.storageCapacity += storageBonus;
+
+        // Update UI
+        this.updateUI();
+        this.renderTiles();
+        this.showNotification(`${structureType === 'tent' ? 'Tent' : 'Dig House'} placed! +${storageBonus} storage`, 'success');
     }
 
     updateTileSelection() {
@@ -903,7 +1715,6 @@ class GameController {
 
         // Add artifacts to inventory
         result.artifacts.forEach(artifact => {
-            this.state.artifacts.push(artifact);
             this.addToInventory(artifact);
         });
 
@@ -922,56 +1733,14 @@ class GameController {
     // Layer navigation removed - no longer needed
 
     addToInventory(artifact) {
-        if (this.state.inventory.length < 20) {
-            this.state.inventory.push(artifact);
+        if (this.state.artifacts.length < this.state.storageCapacity) {
+            this.state.artifacts.push(artifact);
+        } else {
+            this.showNotification('Storage full! Build a tent or dig house to increase capacity.', 'warning');
         }
     }
 
-    createInventorySlots() {
-        const container = document.getElementById('inventory-slots');
-        container.innerHTML = '';
-        for (let i = 0; i < 20; i++) {
-            const slot = document.createElement('div');
-            slot.className = 'inventory-slot';
-            slot.dataset.slotIndex = i;
-            container.appendChild(slot);
-        }
-        this.updateInventoryDisplay();
-    }
-
-    updateInventoryDisplay() {
-        const slots = document.querySelectorAll('.inventory-slot');
-        slots.forEach((slot, index) => {
-            slot.innerHTML = '';
-            slot.classList.remove('filled');
-            if (this.state.inventory[index]) {
-                slot.classList.add('filled');
-                const icon = document.createElement('div');
-                icon.className = 'slot-icon';
-                icon.textContent = this.getArtifactIcon(this.state.inventory[index].type);
-                slot.appendChild(icon);
-                
-                // Add click handler to view artifact
-                slot.addEventListener('click', () => {
-                    this.viewArtifact(this.state.inventory[index].id);
-                });
-            }
-        });
-        document.getElementById('inventory-count').textContent = `${this.state.inventory.length} / 20`;
-    }
-    
-    viewArtifact(artifactId) {
-        const artifact = this.state.artifacts.find(a => a.id === artifactId);
-        if (artifact) {
-            // Scroll to artifact in list
-            const card = document.querySelector(`[data-artifact-id="${artifactId}"]`);
-            if (card) {
-                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                card.style.animation = 'pulse 0.5s';
-                setTimeout(() => card.style.animation = '', 500);
-            }
-        }
-    }
+    // createInventorySlots and updateInventoryDisplay removed - merged into renderArtifacts
 
     getArtifactIcon(type) {
         const icons = {
@@ -989,50 +1758,65 @@ class GameController {
     }
 
     renderArtifacts() {
-        const container = document.getElementById('artifacts-list');
+        const container = document.getElementById('inventory-grid');
+        if (!container) return;
+        
         container.innerHTML = '';
 
+        if (this.state.artifacts.length === 0) {
+            // Show empty slots based on storage capacity
+            for (let i = 0; i < this.state.storageCapacity; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'artifact-icon-slot';
+                slot.style.opacity = '0.3';
+                container.appendChild(slot);
+            }
+            // Update inventory count in top bar
+            document.getElementById('inventory-count').textContent = `0 / ${this.state.storageCapacity}`;
+            return;
+        }
+
         this.state.artifacts.forEach(artifact => {
-            const card = document.createElement('div');
-            card.className = 'artifact-card';
-            card.dataset.artifactId = artifact.id;
+            const slot = document.createElement('div');
+            slot.className = 'artifact-icon-slot';
+            slot.dataset.artifactId = artifact.id;
+            
+            // Add rarity class
+            if (artifact.rarity) {
+                slot.classList.add(`rarity-${artifact.rarity}`);
+            }
+            
             if (artifact.identified) {
-                card.classList.add('identified');
+                slot.classList.add('identified');
+            } else {
+                slot.classList.add('unidentified');
             }
 
-            card.innerHTML = `
-                <div class="artifact-header">
-                    <div class="artifact-icon">${this.getArtifactIcon(artifact.type)}</div>
-                    <div class="artifact-title">${artifact.name}</div>
-                    <div class="artifact-value">$${artifact.value}</div>
-                </div>
-                <div class="artifact-details">
-                    <p><strong>Provenience:</strong> ${artifact.provenience}</p>
-                    <p><strong>Style:</strong> ${artifact.style}</p>
-                    <p><strong>Material:</strong> ${artifact.material}</p>
-                    <p><strong>Age:</strong> ${artifact.age}</p>
-                    ${artifact.inscription ? `<p><strong>Inscription:</strong> ${artifact.inscription}</p>` : ''}
-                    ${artifact.set ? `<p><strong>Part of Set:</strong> ${artifact.set}</p>` : ''}
-                </div>
-                ${artifact.bonuses.length > 0 ? `
-                    <div class="artifact-bonuses">
-                        ${artifact.bonuses.map(b => `<div class="bonus-item">+${b.value} ${b.type}</div>`).join('')}
-                    </div>
-                ` : ''}
-                <div class="artifact-actions">
-                    ${!artifact.identified ? `
-                        <button class="artifact-btn identify-btn" onclick="gameController.identifyArtifact('${artifact.id}')">
-                            Identify
-                        </button>
-                    ` : ''}
-                    <button class="artifact-btn sell-btn" onclick="gameController.sellArtifact('${artifact.id}')">
-                        Sell ($${artifact.value})
-                    </button>
-                </div>
-            `;
+            // Icon
+            const icon = document.createElement('div');
+            icon.textContent = this.getArtifactIcon(artifact.type);
+            slot.appendChild(icon);
 
-            container.appendChild(card);
+            // Click handler to show tooltip
+            slot.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.showArtifactTooltip(artifact, slot);
+            });
+
+            container.appendChild(slot);
         });
+
+        // Fill remaining slots with empty placeholders
+        const remaining = this.state.storageCapacity - this.state.artifacts.length;
+        for (let i = 0; i < remaining; i++) {
+            const slot = document.createElement('div');
+            slot.className = 'artifact-icon-slot';
+            slot.style.opacity = '0.3';
+            container.appendChild(slot);
+        }
+
+        // Update inventory count in top bar
+        document.getElementById('inventory-count').textContent = `${this.state.artifacts.length} / ${this.state.storageCapacity}`;
     }
 
     identifyArtifact(artifactId) {
@@ -1050,7 +1834,6 @@ class GameController {
             const index = this.state.artifacts.findIndex(a => a.id === artifactId);
             this.state.artifacts[index] = result.identifiedArtefact;
             this.renderArtifacts();
-            this.updateInventoryDisplay();
             this.showNotification(result.information, 'success');
         } else {
             this.showNotification(result.information, 'error');
@@ -1066,16 +1849,20 @@ class GameController {
         this.state.inventory = this.state.inventory.filter(a => a.id !== artifactId);
         this.updateUI();
         this.renderArtifacts();
-        this.updateInventoryDisplay();
         this.showNotification(`Sold ${artifact.name} for $${artifact.value}`, 'success');
     }
 
     updateUI() {
         const player = this.playerModel.getPlayer();
         document.getElementById('money').textContent = player.money;
-        document.getElementById('workers').textContent = `${player.workers} Workers`;
-        document.getElementById('archaeologists').textContent = `${player.archaeologists} / 5`;
-        document.getElementById('linguists').textContent = `${player.linguists} / 2`;
+        document.getElementById('workers').textContent = player.workers;
+        document.getElementById('archaeologists').textContent = player.archaeologists;
+        document.getElementById('linguists').textContent = player.linguists;
+        // Update inventory count with current storage capacity
+        const inventoryCountEl = document.getElementById('inventory-count');
+        if (inventoryCountEl) {
+            inventoryCountEl.textContent = `${this.state.artifacts.length} / ${this.state.storageCapacity}`;
+        }
     }
 
     showNotification(message, type = 'info') {
@@ -1088,6 +1875,109 @@ class GameController {
         setTimeout(() => {
             notification.remove();
         }, 3000);
+    }
+
+    showArtifactTooltip(artifact, slotElement) {
+        // Remove any existing tooltip
+        const existingTooltip = document.querySelector('.artifact-tooltip-popup');
+        if (existingTooltip) {
+            existingTooltip.remove();
+        }
+
+        // Create tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'artifact-tooltip-popup';
+        if (artifact.identified) {
+            tooltip.classList.add('identified');
+        }
+
+        // Get rarity display name
+        const rarityNames = {
+            'common': 'Common',
+            'uncommon': 'Uncommon',
+            'rare': 'Rare',
+            'very_rare': 'Very Rare',
+            'legendary': 'Legendary'
+        };
+        const rarityName = rarityNames[artifact.rarity] || 'Common';
+        
+        tooltip.innerHTML = `
+            <div class="artifact-tooltip-close" onclick="this.parentElement.remove()">×</div>
+            <div class="artifact-tooltip-header">
+                <div class="artifact-tooltip-icon">${this.getArtifactIcon(artifact.type)}</div>
+                <div class="artifact-tooltip-title">${artifact.name}</div>
+                <div class="artifact-tooltip-rarity rarity-${artifact.rarity || 'common'}">${rarityName}</div>
+                <div class="artifact-tooltip-value">$${artifact.value}</div>
+            </div>
+            <div class="artifact-tooltip-details">
+                <p><strong>Provenience:</strong> ${artifact.provenience}</p>
+                <p><strong>Style:</strong> ${artifact.style}</p>
+                <p><strong>Material:</strong> ${artifact.material}</p>
+                <p><strong>Age:</strong> ${artifact.age}</p>
+                ${artifact.inscription ? `<p><strong>Inscription:</strong> ${artifact.inscription}</p>` : ''}
+                ${artifact.set ? `<p><strong>Part of Set:</strong> ${artifact.set}</p>` : ''}
+            </div>
+            ${artifact.bonuses.length > 0 ? `
+                <div class="artifact-tooltip-bonuses">
+                    ${artifact.bonuses.map(b => `<div class="bonus-item">+${b.value} ${b.type}</div>`).join('')}
+                </div>
+            ` : ''}
+            <div class="artifact-tooltip-actions">
+                ${!artifact.identified && ['rare', 'very_rare', 'legendary'].includes(artifact.rarity) ? `
+                    <button class="artifact-btn identify-btn" onclick="gameController.identifyArtifact('${artifact.id}'); this.closest('.artifact-tooltip-popup').remove();">
+                        Identify
+                    </button>
+                ` : ''}
+                <button class="artifact-btn sell-btn" onclick="gameController.sellArtifact('${artifact.id}'); this.closest('.artifact-tooltip-popup').remove();">
+                    Sell ($${artifact.value})
+                </button>
+            </div>
+        `;
+
+        document.body.appendChild(tooltip);
+
+        // Position tooltip to be visible
+        const slotRect = slotElement.getBoundingClientRect();
+        const tooltipRect = tooltip.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        let left = slotRect.right + 10;
+        let top = slotRect.top + (slotRect.height / 2) - (tooltipRect.height / 2);
+
+        // If tooltip would go off right edge, show on left side
+        if (left + tooltipRect.width > viewportWidth - 10) {
+            left = slotRect.left - tooltipRect.width - 10;
+        }
+
+        // If tooltip would go off bottom, adjust upward
+        if (top + tooltipRect.height > viewportHeight - 10) {
+            top = viewportHeight - tooltipRect.height - 10;
+        }
+
+        // If tooltip would go off top, adjust downward
+        if (top < 10) {
+            top = 10;
+        }
+
+        // Ensure it doesn't go off left edge
+        if (left < 10) {
+            left = 10;
+        }
+
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+
+        // Close on click outside
+        setTimeout(() => {
+            const closeOnOutsideClick = (e) => {
+                if (!tooltip.contains(e.target) && !slotElement.contains(e.target)) {
+                    tooltip.remove();
+                    document.removeEventListener('click', closeOnOutsideClick);
+                }
+            };
+            document.addEventListener('click', closeOnOutsideClick);
+        }, 10);
     }
 }
 
