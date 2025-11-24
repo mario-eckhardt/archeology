@@ -623,29 +623,41 @@ class GameController {
         }
 
         // Site controls
-        document.getElementById('start-excavation-btn').addEventListener('click', () => {
-            this.startExcavation();
-        });
+        const startExcavationBtn = document.getElementById('start-excavation-btn');
+        if (startExcavationBtn) {
+            startExcavationBtn.addEventListener('click', () => {
+                this.startExcavation();
+            });
+        }
 
         // Map button
-        document.getElementById('map-btn').addEventListener('click', () => {
-            this.showMap();
-        });
+        const mapBtn = document.getElementById('map-btn');
+        if (mapBtn) {
+            mapBtn.addEventListener('click', () => {
+                this.showMap();
+            });
+        }
 
         // Close map button
-        document.getElementById('close-map-modal').addEventListener('click', () => {
-            this.hideMap();
-        });
+        const closeMapModal = document.getElementById('close-map-modal');
+        if (closeMapModal) {
+            closeMapModal.addEventListener('click', () => {
+                this.hideMap();
+            });
+        }
 
         // Museum button
-        document.getElementById('museum-btn').addEventListener('click', () => {
-            if (document.getElementById('museum-view').style.display === 'none' || 
-                document.getElementById('museum-view').style.display === '') {
-                this.showMuseum();
-            } else {
-                this.hideMuseum();
-            }
-        });
+        const museumBtn = document.getElementById('museum-btn');
+        if (museumBtn) {
+            museumBtn.addEventListener('click', () => {
+                const museumView = document.getElementById('museum-view');
+                if (museumView && (museumView.style.display === 'none' || museumView.style.display === '')) {
+                    this.showMuseum();
+                } else {
+                    this.hideMuseum();
+                }
+            });
+        }
 
         // Layer controls removed
     }
@@ -1987,8 +1999,14 @@ document.addEventListener('DOMContentLoaded', () => {
     gameController = new GameController();
     
     // Close task modal
-    document.getElementById('close-task-modal').addEventListener('click', () => {
-        document.getElementById('task-modal').classList.remove('show');
-    });
+    const closeTaskModal = document.getElementById('close-task-modal');
+    if (closeTaskModal) {
+        closeTaskModal.addEventListener('click', () => {
+            const taskModal = document.getElementById('task-modal');
+            if (taskModal) {
+                taskModal.classList.remove('show');
+            }
+        });
+    }
 });
 
