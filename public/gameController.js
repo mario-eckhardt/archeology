@@ -25,15 +25,16 @@ class GameState {
         this.storageCapacity = 20; // Base storage capacity
         this.selectedStructure = null; // 'tent' or 'dig_house'
         this.discoveredSites = new Set(['Tell Abu Salabikh']); // Track discovered sites
+        this.newsArticles = []; // News articles for the newspaper
         this.museumRooms = [
             {
                 id: 'room_1',
                 name: 'Main Hall',
                 unlocked: true,
                 cases: [
-                    { id: 'case_1_1', unlocked: true, slots: 4 },
-                    { id: 'case_1_2', unlocked: false, slots: 3 },
-                    { id: 'case_1_3', unlocked: false, slots: 5 }
+                    { id: 'case_1_1', unlocked: true, slots: 4, caption: 'Sumerian Artifacts' },
+                    { id: 'case_1_2', unlocked: false, slots: 3, caption: 'Administrative Records' },
+                    { id: 'case_1_3', unlocked: false, slots: 5, caption: 'Religious Objects' }
                 ]
             },
             {
@@ -41,8 +42,8 @@ class GameState {
                 name: 'Ancient Artifacts Wing',
                 unlocked: false,
                 cases: [
-                    { id: 'case_2_1', unlocked: false, slots: 4 },
-                    { id: 'case_2_2', unlocked: false, slots: 3 }
+                    { id: 'case_2_1', unlocked: false, slots: 4, caption: 'Jewelry Collection' },
+                    { id: 'case_2_2', unlocked: false, slots: 3, caption: 'Tools and Weapons' }
                 ]
             }
         ]; // Museum structure: rooms with cases
@@ -237,17 +238,25 @@ class TaskModel {
             case 'surface_collection': return 2; // seconds for demo
             case 'excavation': return 5;
             case 'trench': return 8;
+            case 'decipher': return 4; // seconds for deciphering
             default: return 2;
         }
     }
 
     calculateCost(type, workers, archaeologists, linguists) {
-        const baseCost = type === 'surface_collection' ? 50 :
-                         type === 'excavation' ? 200 : 500;
+        // Excavation methods are now free, only require personnel
+        if (type === 'surface_collection' || type === 'excavation' || type === 'trench') {
+            return 0;
+        }
+        // Deciphering is free, just requires linguist
+        if (type === 'decipher') {
+            return 0;
+        }
+        // Other task types may have costs
         const workerCost = workers * 50;
         const archaeologistCost = archaeologists * 200;
         const linguistCost = linguists * 500;
-        return baseCost + workerCost + archaeologistCost + linguistCost;
+        return workerCost + archaeologistCost + linguistCost;
     }
 }
 
@@ -546,6 +555,7 @@ class GameController {
         this.playerModel = new PlayerModel(1000);
         this.excavationSystem = new ExcavationSystem();
         this.identificationSystem = new IdentificationSystem();
+        this.gameRunning = false; // Track if game is in progress
         this.init();
     }
 
@@ -644,15 +654,15 @@ class GameController {
         const mapBtn = document.getElementById('map-btn');
         if (mapBtn) {
             mapBtn.addEventListener('click', () => {
-                this.showMap();
-            });
-        }
-
-        // Close map button
-        const closeMapModal = document.getElementById('close-map-modal');
-        if (closeMapModal) {
-            closeMapModal.addEventListener('click', () => {
-                this.hideMap();
+                // Close museum if open
+                this.hideMuseum();
+                // Toggle map
+                const mapView = document.getElementById('map-view');
+                if (mapView && (mapView.style.display === 'none' || mapView.style.display === '')) {
+                    this.showMap();
+                } else {
+                    this.hideMap();
+                }
             });
         }
 
@@ -660,6 +670,10 @@ class GameController {
         const museumBtn = document.getElementById('museum-btn');
         if (museumBtn) {
             museumBtn.addEventListener('click', () => {
+                // Close other views if open
+                this.hideMap();
+                this.hideNews();
+                // Toggle museum
                 const museumView = document.getElementById('museum-view');
                 if (museumView && (museumView.style.display === 'none' || museumView.style.display === '')) {
                     this.showMuseum();
@@ -668,6 +682,73 @@ class GameController {
                 }
             });
         }
+
+        // News button
+        const newsBtn = document.getElementById('news-btn');
+        if (newsBtn) {
+            newsBtn.addEventListener('click', () => {
+                // Close other views if open
+                this.hideMap();
+                this.hideMuseum();
+                // Toggle news
+                const newsView = document.getElementById('news-view');
+                if (newsView && (newsView.style.display === 'none' || newsView.style.display === '')) {
+                    this.showNews();
+                } else {
+                    this.hideNews();
+                }
+            });
+        }
+
+        // Menu button
+        const menuBtn = document.getElementById('menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', () => {
+                // Close map and museum when opening menu
+                this.hideMap();
+                this.hideMuseum();
+                this.showStartScreen();
+            });
+        }
+
+        // Start screen buttons
+        const startNewGameBtn = document.getElementById('start-new-game-btn');
+        if (startNewGameBtn) {
+            startNewGameBtn.addEventListener('click', () => {
+                this.startNewGame();
+            });
+        }
+
+        const returnToGameBtn = document.getElementById('return-to-game-btn');
+        if (returnToGameBtn) {
+            returnToGameBtn.addEventListener('click', () => {
+                this.hideStartScreen();
+            });
+        }
+
+        const loadGameBtn = document.getElementById('load-game-btn');
+        if (loadGameBtn) {
+            loadGameBtn.addEventListener('click', () => {
+                this.showSlotSelection('load');
+            });
+        }
+
+        const saveGameBtn = document.getElementById('save-game-btn');
+        if (saveGameBtn) {
+            saveGameBtn.addEventListener('click', () => {
+                this.showSlotSelection('save');
+            });
+        }
+
+        // Save slot modal buttons
+        const cancelSlotBtn = document.getElementById('cancel-slot-btn');
+        if (cancelSlotBtn) {
+            cancelSlotBtn.addEventListener('click', () => {
+                this.hideSlotSelection();
+            });
+        }
+
+        // Slot buttons (will be set up in showSlotSelection)
 
         // Layer controls removed
         } catch (error) {
@@ -787,6 +868,10 @@ class GameController {
         const mapView = document.getElementById('map-view');
         const mapContainer = document.getElementById('map-container');
         const mainContainer = document.querySelector('.main-container');
+        
+        // Close other views if open
+        this.hideMuseum();
+        this.hideNews();
         
         // Hide main content
         if (mainContainer) {
@@ -926,6 +1011,10 @@ class GameController {
         const mainContainer = document.querySelector('.main-container');
         const museumBtn = document.getElementById('museum-btn');
         
+        // Close other views if open
+        this.hideMap();
+        this.hideNews();
+        
         // Hide main content
         if (mainContainer) {
             mainContainer.style.display = 'none';
@@ -958,6 +1047,119 @@ class GameController {
         }
         
         museumView.style.display = 'none';
+    }
+
+    showNews() {
+        const newsView = document.getElementById('news-view');
+        const mainContainer = document.querySelector('.main-container');
+        const newsBtn = document.getElementById('news-btn');
+        
+        // Close other views if open
+        this.hideMap();
+        this.hideMuseum();
+        
+        // Hide main content
+        if (mainContainer) {
+            mainContainer.style.display = 'none';
+        }
+        
+        if (newsView) {
+            newsView.style.display = 'flex';
+            this.renderNews();
+        }
+        
+        // Highlight button
+        if (newsBtn) {
+            newsBtn.classList.add('active');
+        }
+    }
+
+    hideNews() {
+        const newsView = document.getElementById('news-view');
+        const mainContainer = document.querySelector('.main-container');
+        const newsBtn = document.getElementById('news-btn');
+        
+        // Show main content again
+        if (mainContainer) {
+            mainContainer.style.display = 'flex';
+        }
+        
+        if (newsView) {
+            newsView.style.display = 'none';
+        }
+        
+        // Remove highlight from button
+        if (newsBtn) {
+            newsBtn.classList.remove('active');
+        }
+    }
+
+    renderNews() {
+        const newsContent = document.getElementById('newspaper-content');
+        const newsDate = document.getElementById('newspaper-date');
+        
+        if (!newsContent) return;
+        
+        // Set current date
+        if (newsDate) {
+            const today = new Date();
+            const dateStr = today.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+            newsDate.textContent = dateStr;
+        }
+        
+        // Clear existing content
+        newsContent.innerHTML = '';
+        
+        // Get articles from game state
+        const articles = this.state.newsArticles || [];
+        
+        // If no articles, add the initial Abu Salabikh article
+        if (articles.length === 0) {
+            this.addNewsArticle({
+                title: 'New Archaeological Expedition Begins at Tell Abu Salabikh',
+                subtitle: 'International Team Arrives to Uncover Ancient Mesopotamian Secrets',
+                date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+                body: [
+                    'A new archaeological expedition has officially commenced at Tell Abu Salabikh, one of the most promising sites in ancient Mesopotamia. The site, located in what is now modern-day Iraq, is believed to contain significant artifacts and structures from the Sumerian period.',
+                    'The international team of archaeologists, led by experienced field directors, has set up camp and begun preliminary surveys of the area. Initial surface collections have already revealed promising signs of ancient habitation, with fragments of pottery and other artifacts visible on the ground.',
+                    'Tell Abu Salabikh is known to scholars as a site of considerable importance, potentially containing administrative records, religious artifacts, and evidence of early urban development in Mesopotamia. The expedition aims to systematically excavate the site using modern archaeological methods.',
+                    'Funding for this ambitious project has been secured through a combination of academic institutions and private donors interested in preserving and understanding our shared human heritage. The team is equipped with the latest tools and techniques for careful, methodical excavation.',
+                    'As work progresses, discoveries are expected to shed light on the daily lives, religious practices, and administrative systems of the ancient Sumerians. The expedition will document all findings meticulously, ensuring that future generations can learn from these invaluable insights into early civilization.',
+                    'Local authorities have expressed support for the project, recognizing its potential to contribute to both academic knowledge and cultural preservation. The team is committed to working in close collaboration with local communities and respecting all cultural and legal requirements.'
+                ]
+            });
+        }
+        
+        // Render all articles
+        articles.forEach(article => {
+            const articleEl = document.createElement('div');
+            articleEl.className = 'newspaper-article';
+            
+            articleEl.innerHTML = `
+                <div class="article-header">
+                    <h2 class="article-title">${article.title}</h2>
+                    ${article.subtitle ? `<div class="article-subtitle">${article.subtitle}</div>` : ''}
+                    <div class="article-meta">Published: ${article.date}</div>
+                </div>
+                <div class="article-body">
+                    ${article.body.map(paragraph => `<p>${paragraph}</p>`).join('')}
+                </div>
+            `;
+            
+            newsContent.appendChild(articleEl);
+        });
+    }
+
+    addNewsArticle(article) {
+        if (!this.state.newsArticles) {
+            this.state.newsArticles = [];
+        }
+        this.state.newsArticles.push(article);
     }
 
     generateExhibitionSlots() {
@@ -1037,6 +1239,14 @@ class GameController {
                     }
                     
                     if (displayCase.unlocked) {
+                        // Add caption if available
+                        if (displayCase.caption) {
+                            const captionEl = document.createElement('div');
+                            captionEl.className = 'display-case-caption';
+                            captionEl.textContent = displayCase.caption;
+                            caseElement.appendChild(captionEl);
+                        }
+                        
                         const slotsGrid = document.createElement('div');
                         slotsGrid.className = 'exhibition-grid';
                         
@@ -1204,7 +1414,7 @@ class GameController {
             name: roomName,
             unlocked: false,
             cases: [
-                { id: `${roomId}_case_1`, unlocked: false, slots: 3 + Math.floor(Math.random() * 3) } // 3-5 slots
+                { id: `${roomId}_case_1`, unlocked: false, slots: 3 + Math.floor(Math.random() * 3), caption: 'Display Case 1' } // 3-5 slots
             ]
         };
         this.state.museumRooms.push(newRoom);
@@ -1218,7 +1428,8 @@ class GameController {
         const newCase = {
             id: caseId,
             unlocked: false,
-            slots: 3 + Math.floor(Math.random() * 3) // 3-5 slots
+            slots: 3 + Math.floor(Math.random() * 3), // 3-5 slots
+            caption: `Display Case ${room.cases.length + 1}`
         };
         room.cases.push(newCase);
     }
@@ -1657,13 +1868,16 @@ class GameController {
 
         // Determine personnel requirements
         let workers = 1, archaeologists = 0, linguists = 0;
-        if (this.state.selectedExcavationMethod === 'excavation') {
+        if (this.state.selectedExcavationMethod === 'surface_collection') {
+            workers = 1;
+            archaeologists = 0;
+        } else if (this.state.selectedExcavationMethod === 'excavation') {
             workers = 3;
             archaeologists = 1;
         } else if (this.state.selectedExcavationMethod === 'trench') {
             workers = 5;
-            archaeologists = 2;
-            linguists = 1;
+            archaeologists = 1;
+            linguists = 0;
         }
 
         // Check if we have enough personnel
@@ -1684,7 +1898,8 @@ class GameController {
         selectedTiles.forEach(tile => taskModel.addTile(tile.id));
 
         const task = taskModel.getTask();
-        if (!this.playerModel.spendMoney(task.cost)) {
+        // Excavation methods are now free, only check if cost > 0
+        if (task.cost > 0 && !this.playerModel.spendMoney(task.cost)) {
             this.showNotification('Insufficient funds!', 'error');
             return;
         }
@@ -1879,6 +2094,131 @@ class GameController {
         this.showNotification(`Sold ${artifact.name} for $${artifact.value}`, 'success');
     }
 
+    decipherTablet(artifactId) {
+        const artifact = this.state.artifacts.find(a => a.id === artifactId);
+        if (!artifact || artifact.type !== 'cuneiform_tablet') {
+            this.showNotification('This artifact cannot be deciphered.', 'error');
+            return;
+        }
+
+        if (artifact.deciphered) {
+            this.showNotification('This tablet has already been deciphered.', 'info');
+            return;
+        }
+
+        const player = this.playerModel.getPlayer();
+        if (player.linguists < 1) {
+            this.showNotification('You need at least 1 linguist to decipher tablets!', 'error');
+            return;
+        }
+
+        // Create decipher task
+        const taskModel = new TaskModel('decipher', player.id, 0, 0, 1);
+        taskModel.start();
+        this.state.activeTask = taskModel;
+        this.showDecipherTaskModal(taskModel, artifactId);
+    }
+
+    showDecipherTaskModal(taskModel, artifactId) {
+        const modal = document.getElementById('task-modal');
+        const progressFill = document.getElementById('task-progress-fill');
+        const taskStatus = document.getElementById('task-status');
+        const closeBtn = document.getElementById('close-task-modal');
+
+        modal.classList.add('show');
+        closeBtn.style.display = 'none';
+
+        const startTime = Date.now();
+        const duration = taskModel.getTask().estimatedDuration * 1000;
+
+        const interval = setInterval(() => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            progressFill.style.width = progress + '%';
+
+            if (progress >= 100) {
+                clearInterval(interval);
+                this.completeDecipherTask(taskModel, artifactId);
+                taskStatus.textContent = 'Deciphering Complete!';
+                closeBtn.style.display = 'block';
+            } else {
+                taskStatus.textContent = `Deciphering... ${Math.floor(progress)}%`;
+            }
+        }, 100);
+    }
+
+    completeDecipherTask(taskModel, artifactId) {
+        const artifact = this.state.artifacts.find(a => a.id === artifactId);
+        if (!artifact) return;
+
+        // Generate Mesopotamian historical data
+        const mesopotamianData = this.generateMesopotamianData();
+        
+        // Mark as deciphered and store data
+        artifact.deciphered = true;
+        artifact.decipherData = mesopotamianData;
+        
+        // Increase value after deciphering
+        artifact.value = Math.floor(artifact.value * 1.5);
+
+        this.state.activeTask = null;
+        this.updateUI();
+        this.renderArtifacts();
+        this.showNotification('Tablet deciphered! Historical information revealed.', 'success');
+    }
+
+    generateMesopotamianData() {
+        // Mesopotamian cities
+        const cities = [
+            'Ur', 'Uruk', 'Nippur', 'Babylon', 'Kish', 'Lagash', 'Eridu', 
+            'Sippar', 'Larsa', 'Isin', 'Akkad', 'Nineveh', 'Assur', 'Mari'
+        ];
+
+        // Mesopotamian temples
+        const temples = [
+            'Temple of Enlil', 'Temple of Inanna', 'Temple of Marduk', 
+            'Temple of Nanna', 'Temple of Utu', 'Temple of Enki',
+            'Ziggurat of Ur', 'Temple of Ishtar', 'Temple of Nabu',
+            'Temple of Shamash', 'Temple of Ea', 'Temple of Anu'
+        ];
+
+        // Mesopotamian gods
+        const gods = [
+            'Enlil', 'Inanna', 'Marduk', 'Nanna', 'Utu', 'Enki', 
+            'Ishtar', 'Nabu', 'Shamash', 'Ea', 'Anu', 'Ninurta',
+            'Tiamat', 'Apsu', 'Dumuzid', 'Gilgamesh'
+        ];
+
+        // Mesopotamian kings
+        const kings = [
+            'Hammurabi', 'Sargon of Akkad', 'Naram-Sin', 'Ur-Nammu',
+            'Shulgi', 'Gudea', 'Nebuchadnezzar II', 'Ashurbanipal',
+            'Sennacherib', 'Tiglath-Pileser III', 'Cyrus the Great',
+            'Nabonidus', 'Enmerkar', 'Lugalbanda', 'Gilgamesh'
+        ];
+
+        // Randomly select which categories are mentioned (at least 1, up to all 4)
+        const data = {};
+        const categories = ['city', 'temple', 'god', 'king'];
+        const numMentions = Math.floor(Math.random() * 4) + 1; // 1-4 mentions
+        const selectedCategories = categories.sort(() => 0.5 - Math.random()).slice(0, numMentions);
+
+        if (selectedCategories.includes('city')) {
+            data.city = cities[Math.floor(Math.random() * cities.length)];
+        }
+        if (selectedCategories.includes('temple')) {
+            data.temple = temples[Math.floor(Math.random() * temples.length)];
+        }
+        if (selectedCategories.includes('god')) {
+            data.god = gods[Math.floor(Math.random() * gods.length)];
+        }
+        if (selectedCategories.includes('king')) {
+            data.king = kings[Math.floor(Math.random() * kings.length)];
+        }
+
+        return data;
+    }
+
     updateUI() {
         const player = this.playerModel.getPlayer();
         document.getElementById('money').textContent = player.money;
@@ -1894,13 +2234,23 @@ class GameController {
 
     showNotification(message, type = 'info') {
         const notifications = document.getElementById('notifications');
+        if (!notifications) return;
+        
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.textContent = message;
+        
         notifications.appendChild(notification);
-
+        
         setTimeout(() => {
-            notification.remove();
+            notification.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
         }, 3000);
     }
 
@@ -1949,10 +2299,24 @@ class GameController {
                     ${artifact.bonuses.map(b => `<div class="bonus-item">+${b.value} ${b.type}</div>`).join('')}
                 </div>
             ` : ''}
+            ${artifact.type === 'cuneiform_tablet' && artifact.deciphered ? `
+                <div class="artifact-tooltip-decipher-info">
+                    <h4>Deciphered Contents:</h4>
+                    ${artifact.decipherData.city ? `<p><strong>City:</strong> ${artifact.decipherData.city}</p>` : ''}
+                    ${artifact.decipherData.temple ? `<p><strong>Temple:</strong> ${artifact.decipherData.temple}</p>` : ''}
+                    ${artifact.decipherData.god ? `<p><strong>God:</strong> ${artifact.decipherData.god}</p>` : ''}
+                    ${artifact.decipherData.king ? `<p><strong>King:</strong> ${artifact.decipherData.king}</p>` : ''}
+                </div>
+            ` : ''}
             <div class="artifact-tooltip-actions">
                 ${!artifact.identified && ['rare', 'very_rare', 'legendary'].includes(artifact.rarity) ? `
                     <button class="artifact-btn identify-btn" onclick="gameController.identifyArtifact('${artifact.id}'); this.closest('.artifact-tooltip-popup').remove();">
                         Identify
+                    </button>
+                ` : ''}
+                ${artifact.type === 'cuneiform_tablet' && !artifact.deciphered ? `
+                    <button class="artifact-btn decipher-btn" onclick="gameController.decipherTablet('${artifact.id}'); this.closest('.artifact-tooltip-popup').remove();">
+                        Decipher
                     </button>
                 ` : ''}
                 <button class="artifact-btn sell-btn" onclick="gameController.sellArtifact('${artifact.id}'); this.closest('.artifact-tooltip-popup').remove();">
@@ -2006,12 +2370,245 @@ class GameController {
             document.addEventListener('click', closeOnOutsideClick);
         }, 10);
     }
+
+    showStartScreen() {
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.classList.remove('hidden');
+            // Show "Return to Game" button if game is running
+            const returnBtn = document.getElementById('return-to-game-btn');
+            if (returnBtn) {
+                returnBtn.style.display = this.gameRunning ? 'block' : 'none';
+            }
+        }
+    }
+
+    hideStartScreen() {
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.classList.add('hidden');
+        }
+    }
+
+    startNewGame() {
+        // Reset game state
+        this.state = new GameState();
+        this.playerModel = new PlayerModel(1000);
+        this.excavationSystem = new ExcavationSystem();
+        this.identificationSystem = new IdentificationSystem();
+        this.gameRunning = true; // Mark game as running
+        
+        // Hide start screen
+        this.hideStartScreen();
+        
+        // Reinitialize game
+        this.updateUI();
+        this.createInitialSite();
+        this.renderArtifacts();
+        
+        // Show notification
+        this.showNotification('New game started!', 'success');
+    }
+
+    saveGame(slotNumber) {
+        try {
+            const gameData = {
+                state: {
+                    player: this.state.player,
+                    artifacts: this.state.artifacts,
+                    tiles: Array.from(this.state.tiles.entries()),
+                    currentSite: this.state.currentSite,
+                    selectedExcavationMethod: this.state.selectedExcavationMethod,
+                    selectedTiles: this.state.selectedTiles,
+                    exhibitedArtifacts: this.state.exhibitedArtifacts,
+                    exhibitedArtifactsData: this.state.exhibitedArtifactsData,
+                    storageCapacity: this.state.storageCapacity,
+                    selectedStructure: this.state.selectedStructure,
+                    discoveredSites: Array.from(this.state.discoveredSites),
+                    museumRooms: this.state.museumRooms,
+                    newsArticles: this.state.newsArticles || []
+                },
+                playerModel: {
+                    player: this.playerModel.player
+                },
+                timestamp: new Date().toISOString()
+            };
+            
+            localStorage.setItem(`archeologyGameSave_${slotNumber}`, JSON.stringify(gameData));
+            this.showNotification(`Game saved to slot ${slotNumber} successfully!`, 'success');
+            this.hideSlotSelection();
+        } catch (error) {
+            console.error('Error saving game:', error);
+            this.showNotification('Failed to save game. ' + error.message, 'error');
+        }
+    }
+
+    loadGame(slotNumber) {
+        try {
+            const savedData = localStorage.getItem(`archeologyGameSave_${slotNumber}`);
+            if (!savedData) {
+                this.showNotification(`No saved game found in slot ${slotNumber}.`, 'error');
+                return;
+            }
+            
+            const gameData = JSON.parse(savedData);
+            
+            // Restore state
+            this.state.player = gameData.state.player;
+            this.state.artifacts = gameData.state.artifacts || [];
+            this.state.tiles = new Map(gameData.state.tiles || []);
+            this.state.currentSite = gameData.state.currentSite;
+            this.state.selectedExcavationMethod = gameData.state.selectedExcavationMethod;
+            this.state.selectedTiles = gameData.state.selectedTiles || [];
+            this.state.exhibitedArtifacts = gameData.state.exhibitedArtifacts || {};
+            this.state.exhibitedArtifactsData = gameData.state.exhibitedArtifactsData || {};
+            this.state.storageCapacity = gameData.state.storageCapacity || 20;
+            this.state.selectedStructure = gameData.state.selectedStructure;
+            this.state.discoveredSites = new Set(gameData.state.discoveredSites || ['Tell Abu Salabikh']);
+            this.state.museumRooms = gameData.state.museumRooms || this.state.museumRooms;
+            this.state.newsArticles = gameData.state.newsArticles || [];
+            
+            // Restore player model
+            if (gameData.playerModel && gameData.playerModel.player) {
+                this.playerModel.player = gameData.playerModel.player;
+            }
+            
+            this.gameRunning = true; // Mark game as running
+            
+            // Hide start screen and slot selection
+            this.hideStartScreen();
+            this.hideSlotSelection();
+            
+            // Reinitialize UI
+            this.updateUI();
+            this.renderTiles();
+            this.renderArtifacts();
+            
+            // Regenerate museum if needed
+            if (document.getElementById('museum-view') && 
+                document.getElementById('museum-view').style.display !== 'none') {
+                this.generateExhibitionSlots();
+            }
+            
+            this.showNotification(`Game loaded from slot ${slotNumber} successfully!`, 'success');
+        } catch (error) {
+            console.error('Error loading game:', error);
+            this.showNotification('Failed to load game. ' + error.message, 'error');
+        }
+    }
+
+    showSlotSelection(mode) {
+        const modal = document.getElementById('save-slot-modal');
+        if (!modal) return;
+        
+        // Hide start screen temporarily so modal is visible
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen) {
+            startScreen.style.pointerEvents = 'none';
+            startScreen.style.opacity = '0.3';
+        }
+        
+        // Update modal title
+        const title = modal.querySelector('h3');
+        if (title) {
+            title.textContent = mode === 'save' ? 'Select Save Slot' : 'Select Load Slot';
+        }
+        
+        // Update slot info for each slot
+        for (let i = 1; i <= 3; i++) {
+            const slotInfo = document.getElementById(`slot-${i}-info`);
+            const savedData = localStorage.getItem(`archeologyGameSave_${i}`);
+            
+            if (savedData) {
+                try {
+                    const gameData = JSON.parse(savedData);
+                    const date = new Date(gameData.timestamp);
+                    const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    slotInfo.textContent = dateStr;
+                } catch (e) {
+                    slotInfo.textContent = 'Corrupted';
+                }
+            } else {
+                slotInfo.textContent = 'Empty';
+            }
+        }
+        
+        // Set up slot button click handlers
+        const slotButtons = modal.querySelectorAll('.slot-btn');
+        slotButtons.forEach(btn => {
+            // Remove existing listeners by cloning
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            
+            newBtn.addEventListener('click', () => {
+                const slotNumber = parseInt(newBtn.dataset.slot);
+                if (mode === 'save') {
+                    this.saveGame(slotNumber);
+                } else {
+                    this.loadGame(slotNumber);
+                }
+            });
+        });
+        
+        // Close on background click
+        const closeOnBackgroundClick = (e) => {
+            if (e.target === modal) {
+                this.hideSlotSelection();
+                modal.removeEventListener('click', closeOnBackgroundClick);
+            }
+        };
+        modal.addEventListener('click', closeOnBackgroundClick);
+        
+        modal.classList.add('show');
+    }
+
+    hideSlotSelection() {
+        const modal = document.getElementById('save-slot-modal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+        
+        // Restore start screen visibility
+        const startScreen = document.getElementById('start-screen');
+        if (startScreen && !startScreen.classList.contains('hidden')) {
+            startScreen.style.pointerEvents = 'auto';
+            startScreen.style.opacity = '1';
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notifications = document.getElementById('notifications');
+        if (!notifications) return;
+        
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        
+        notifications.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.classList.add('show');
+        }, 10);
+        
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 3000);
+    }
 }
 
 // Initialize game when page loads
 let gameController;
 document.addEventListener('DOMContentLoaded', () => {
     gameController = new GameController();
+    
+    // Show start screen initially
+    const startScreen = document.getElementById('start-screen');
+    if (startScreen) {
+        startScreen.classList.remove('hidden');
+    }
     
     // Close task modal
     const closeTaskModal = document.getElementById('close-task-modal');

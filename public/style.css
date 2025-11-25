@@ -161,7 +161,6 @@ body {
     margin-top: 20px;
     margin-bottom: 20px;
     padding-top: 20px;
-    border-top: 1px solid #eee;
 }
 
 .structure-methods {
@@ -240,7 +239,6 @@ body {
 .personnel-section {
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 1px solid #eee;
 }
 
 .personnel-section h3 {
@@ -850,6 +848,36 @@ body {
     background: #3a6b49;
 }
 
+.decipher-btn {
+    background: #6B5D4F;
+    color: white;
+}
+
+.decipher-btn:hover:not(:disabled) {
+    background: #5a4d3f;
+}
+
+.artifact-tooltip-decipher-info {
+    margin-top: 15px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border-left: 4px solid #8B7355;
+}
+
+.artifact-tooltip-decipher-info h4 {
+    margin: 0 0 10px 0;
+    color: #8B7355;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.artifact-tooltip-decipher-info p {
+    margin: 5px 0;
+    font-size: 13px;
+    color: #555;
+}
+
 .artifact-btn:disabled {
     background: #ccc;
     cursor: not-allowed;
@@ -864,7 +892,7 @@ body {
     width: 100%;
     height: 100%;
     background: rgba(0,0,0,0.5);
-    z-index: 1000;
+    z-index: 10001;
     align-items: center;
     justify-content: center;
 }
@@ -893,21 +921,6 @@ body {
     flex-direction: column;
 }
 
-.map-header {
-    background: #8B7355;
-    color: white;
-    padding: 15px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.map-header h2 {
-    margin: 0;
-    font-size: 20px;
-    color: white;
-}
 
 .map-container {
     flex: 1;
@@ -1030,51 +1043,176 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background: #f5f5f5;
+    background: #e8e4d8;
     z-index: 1000;
     display: flex;
     flex-direction: column;
     overflow: hidden;
 }
 
-.museum-interior {
+.museum-view .museum-interior {
     flex: 1;
-    padding: 30px;
-    overflow: auto;
-    position: relative;
-    background: #e8e4d8;
-    /* Floor plan background */
-    background-image: 
-        /* Walls */
-        linear-gradient(90deg, rgba(139, 115, 85, 0.3) 0%, rgba(139, 115, 85, 0.3) 2%, transparent 2%, transparent 98%, rgba(139, 115, 85, 0.3) 98%, rgba(139, 115, 85, 0.3) 100%),
-        linear-gradient(0deg, rgba(139, 115, 85, 0.3) 0%, rgba(139, 115, 85, 0.3) 2%, transparent 2%, transparent 98%, rgba(139, 115, 85, 0.3) 98%, rgba(139, 115, 85, 0.3) 100%),
-        /* Room divisions */
-        linear-gradient(90deg, transparent 0%, transparent 30%, rgba(139, 115, 85, 0.2) 30%, rgba(139, 115, 85, 0.2) 32%, transparent 32%),
-        linear-gradient(90deg, transparent 68%, rgba(139, 115, 85, 0.2) 68%, rgba(139, 115, 85, 0.2) 70%, transparent 70%),
-        linear-gradient(0deg, transparent 0%, transparent 40%, rgba(139, 115, 85, 0.2) 40%, rgba(139, 115, 85, 0.2) 42%, transparent 42%),
-        /* Floor tiles */
-        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(139, 115, 85, 0.05) 40px, rgba(139, 115, 85, 0.05) 41px),
-        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(139, 115, 85, 0.05) 40px, rgba(139, 115, 85, 0.05) 41px),
-        /* Base */
-        linear-gradient(135deg, #e8e4d8 0%, #ddd8cc 100%);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 40px 40px, 40px 40px, 100% 100%;
+    overflow-y: auto;
 }
 
-.museum-interior {
+.news-view {
+    position: fixed;
+    top: 60px; /* Below top bar */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #f5f5f5;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
     padding: 20px;
+}
+
+.newspaper-container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    padding: 40px;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    color: #333;
+    line-height: 1.6;
+}
+
+.newspaper-header {
+    border-bottom: 3px double #000;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.newspaper-title {
+    font-size: 48px;
+    font-weight: bold;
+    margin: 0 0 10px 0;
+    font-family: 'Times New Roman', serif;
+    letter-spacing: 2px;
+    color: #000;
+}
+
+.newspaper-date {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+.newspaper-content {
     display: flex;
     flex-direction: column;
     gap: 30px;
-    max-width: 1400px;
+}
+
+.newspaper-article {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+}
+
+.newspaper-article:last-child {
+    border-bottom: none;
+}
+
+.article-header {
+    margin-bottom: 15px;
+}
+
+.article-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    color: #000;
+    font-family: 'Times New Roman', serif;
+    line-height: 1.2;
+}
+
+.article-subtitle {
+    font-size: 16px;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+.article-meta {
+    font-size: 12px;
+    color: #888;
+    border-top: 1px solid #ddd;
+    border-bottom: 1px solid #ddd;
+    padding: 8px 0;
+    margin-bottom: 15px;
+}
+
+.article-body {
+    font-size: 16px;
+    text-align: justify;
+    column-count: 2;
+    column-gap: 30px;
+    column-rule: 1px solid #ddd;
+}
+
+.article-body p {
+    margin: 0 0 15px 0;
+    text-indent: 20px;
+}
+
+.article-body p:first-child {
+    text-indent: 0;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.article-body p:first-child::first-letter {
+    font-size: 48px;
+    line-height: 1;
+    float: left;
+    padding-right: 8px;
+    padding-top: 4px;
+    font-weight: bold;
+}
+
+.museum-header {
+    background: #8B7355;
+    color: white;
+    padding: 20px 40px;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.museum-header h1 {
+    margin: 0;
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: 1px;
+}
+
+.museum-interior {
+    flex: 1;
+    padding: 20px 40px;
+    overflow: auto;
+    position: relative;
+    background: #e8e4d8;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    max-width: 100%;
+    width: 100%;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .museum-room {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 8px;
-    padding: 20px;
+    padding: 25px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     backdrop-filter: blur(2px);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .museum-room.locked {
@@ -1097,8 +1235,8 @@ body {
 }
 
 .museum-cases {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
 }
 
@@ -1106,7 +1244,22 @@ body {
     background: rgba(245, 245, 245, 0.8);
     border: 2px solid #ddd;
     border-radius: 6px;
-    padding: 15px;
+    padding: 18px;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.display-case-caption {
+    font-size: 14px;
+    font-weight: 600;
+    color: #8B7355;
+    margin-bottom: 12px;
+    text-align: center;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ddd;
 }
 
 .display-case.locked {
@@ -1140,9 +1293,12 @@ body {
 
 .exhibition-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 12px;
     margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 /* Adapt grid for different slot counts */
@@ -1172,6 +1328,9 @@ body {
     position: relative;
     padding: 8px;
     min-height: 80px;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .exhibition-slot:hover:not(.filled) {
@@ -1341,7 +1500,14 @@ body {
     border-radius: 6px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     min-width: 300px;
-    animation: slideIn 0.3s;
+    opacity: 0;
+    transform: translateX(100%);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.notification.show {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .notification.success {
@@ -1377,9 +1543,151 @@ body {
 }
 
 /* Responsive adjustments */
+/* Start Screen / Main Menu */
+.start-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #8B7355 0%, #6B5D4F 50%, #4A3E35 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.start-screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.start-screen-content {
+    text-align: center;
+    color: white;
+    padding: 40px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    min-width: 400px;
+}
+
+.game-title {
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 60px;
+    text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
+    letter-spacing: 2px;
+    color: #FFD700;
+    text-transform: uppercase;
+}
+
+.menu-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.menu-btn {
+    padding: 18px 40px;
+    font-size: 20px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #d4a574 0%, #b8956a 100%);
+    color: white;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.menu-btn:hover {
+    background: linear-gradient(135deg, #e8b884 0%, #c8a57a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.menu-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Save Slot Selection Modal */
+.save-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.slot-btn {
+    padding: 20px;
+    background: linear-gradient(135deg, #d4a574 0%, #b8956a 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    color: white;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.slot-btn:hover {
+    background: linear-gradient(135deg, #e8b884 0%, #c8a57a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.slot-btn:active {
+    transform: translateY(0);
+}
+
+.slot-number {
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.slot-info {
+    font-size: 14px;
+    opacity: 0.9;
+    font-style: italic;
+}
+
 @media (max-width: 1200px) {
     .main-container {
         grid-template-columns: 200px 1fr 300px;
+    }
+    
+    .museum-cases {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .museum-interior {
+        padding: 15px 20px;
+    }
+    
+    .museum-cases {
+        grid-template-columns: 1fr;
+    }
+    
+    .exhibition-grid {
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     }
 }
 

@@ -37,12 +37,50 @@
             <div class="resource-item icon-button" id="map-btn" title="Map">
                 <span class="resource-icon">🗺️</span>
             </div>
-            <div class="resource-item icon-button" id="messages-btn" title="Messages">
-                <span class="resource-icon">✉️</span>
-            </div>
             <div class="resource-item icon-button" id="museum-btn" title="Museum">
                 <span class="resource-icon">🏛️</span>
             </div>
+            <div class="resource-item icon-button" id="news-btn" title="News">
+                <span class="resource-icon">📰</span>
+            </div>
+            <div class="resource-item icon-button" id="menu-btn" title="Menu" style="margin-left: auto;">
+                <span class="resource-icon">☰</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Start Screen / Main Menu -->
+    <div class="start-screen" id="start-screen">
+        <div class="start-screen-content">
+            <h1 class="game-title">Archeology in Mesopotamia</h1>
+            <div class="menu-buttons">
+                <button class="menu-btn" id="return-to-game-btn" style="display: none;">Return to Game</button>
+                <button class="menu-btn" id="start-new-game-btn">Start New Game</button>
+                <button class="menu-btn" id="load-game-btn">Load Game</button>
+                <button class="menu-btn" id="save-game-btn">Save Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Save Slot Selection Modal -->
+    <div class="modal" id="save-slot-modal">
+        <div class="modal-content">
+            <h3>Select Save Slot</h3>
+            <div class="save-slots">
+                <button class="slot-btn" data-slot="1">
+                    <div class="slot-number">Slot 1</div>
+                    <div class="slot-info" id="slot-1-info">Empty</div>
+                </button>
+                <button class="slot-btn" data-slot="2">
+                    <div class="slot-number">Slot 2</div>
+                    <div class="slot-info" id="slot-2-info">Empty</div>
+                </button>
+                <button class="slot-btn" data-slot="3">
+                    <div class="slot-number">Slot 3</div>
+                    <div class="slot-info" id="slot-3-info">Empty</div>
+                </button>
+            </div>
+            <button class="action-btn" id="cancel-slot-btn">Cancel</button>
         </div>
     </div>
 
@@ -54,15 +92,15 @@
             <div class="excavation-methods">
                 <button class="excavation-btn icon-btn" id="surface-collection-btn" title="Surface Collection - Quick surface survey">
                     <span class="method-icon">🔍</span>
-                    <span class="method-cost">$50</span>
+                    <span class="method-cost">1 Worker</span>
                 </button>
                 <button class="excavation-btn icon-btn" id="excavation-btn" title="Excavation - Standard digging method">
                     <span class="method-icon">⛏️</span>
-                    <span class="method-cost">$200</span>
+                    <span class="method-cost">1 Arch. + 3 Workers</span>
                 </button>
                 <button class="excavation-btn icon-btn" id="trench-btn" title="Trench - Deep systematic excavation">
                     <span class="method-icon">🕳️</span>
-                    <span class="method-cost">$500</span>
+                    <span class="method-cost">1 Arch. + 5 Workers</span>
                 </button>
             </div>
             
@@ -138,10 +176,6 @@
 
     <!-- Map View (Fullscreen) -->
     <div class="map-view" id="map-view" style="display: none;">
-        <div class="map-header">
-            <h2>Mesopotamia - 19th Century</h2>
-            <button class="action-btn" id="close-map-modal">Close Map</button>
-        </div>
         <div class="map-container" id="map-container">
             <!-- Sites will be rendered here -->
         </div>
@@ -149,8 +183,24 @@
 
     <!-- Museum View (Fullscreen) -->
     <div class="museum-view" id="museum-view" style="display: none;">
+        <div class="museum-header">
+            <h1>The Museum</h1>
+        </div>
         <div class="museum-interior" id="museum-interior">
             <!-- Rooms with cases will be generated here -->
+        </div>
+    </div>
+
+    <!-- News/Newspaper View -->
+    <div class="news-view" id="news-view" style="display: none;">
+        <div class="newspaper-container">
+            <div class="newspaper-header">
+                <h1 class="newspaper-title">The Mesopotamian Chronicle</h1>
+                <div class="newspaper-date" id="newspaper-date"></div>
+            </div>
+            <div class="newspaper-content" id="newspaper-content">
+                <!-- Articles will be generated here -->
+            </div>
         </div>
     </div>
 
